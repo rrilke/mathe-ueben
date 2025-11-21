@@ -86,13 +86,16 @@ function initializeQuiz() {
 function generateQuestions() {
     const questionsArray = [];
     for (let i = 0; i < 10; i++) {
-        const num1 = Math.floor(Math.random() * (selectedRange + 1)); // 0 to selectedRange
-        const num2 = Math.floor(Math.random() * (selectedRange + 1)); // 0 to selectedRange
+        let num1, num2, correctAnswer;
         
-        let correctAnswer;
         if (selectedOperation === 'addition') {
+            num1 = Math.floor(Math.random() * (selectedRange + 1)); // 0 to selectedRange
+            num2 = Math.floor(Math.random() * (selectedRange + 1)); // 0 to selectedRange
             correctAnswer = num1 + num2;
         } else {
+            // For subtraction, ensure num1 >= num2 to avoid negative results
+            num1 = Math.floor(Math.random() * (selectedRange + 1)); // 0 to selectedRange
+            num2 = Math.floor(Math.random() * (num1 + 1)); // 0 to num1
             correctAnswer = num1 - num2;
         }
         
