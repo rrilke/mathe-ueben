@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mathe Üben - Rechnen Lernen</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Settings Page -->
+        <div id="settings-page" class="page active">
+            <h1>Rechnen Üben</h1>
+            <div class="settings-content">
+                <h2>Was möchtest du üben?</h2>
+                <div class="operation-buttons">
+                    <button class="operation-btn" data-operation="addition">
+                        <span class="operation-symbol">+</span>
+                        <span class="operation-name">Plus</span>
+                    </button>
+                    <button class="operation-btn" data-operation="subtraction">
+                        <span class="operation-symbol">−</span>
+                        <span class="operation-name">Minus</span>
+                    </button>
+                </div>
+                
+                <h2>Welche Zahlen möchtest du üben?</h2>
+                <div class="range-buttons">
+                    <button class="range-btn" data-range="5">
+                        <span class="range-label">0 bis 5</span>
+                        <span class="range-desc">Leicht</span>
+                    </button>
+                    <button class="range-btn selected" data-range="10">
+                        <span class="range-label">0 bis 10</span>
+                        <span class="range-desc">Mittel</span>
+                    </button>
+                    <button class="range-btn" data-range="20">
+                        <span class="range-label">0 bis 20</span>
+                        <span class="range-desc">Schwer</span>
+                    </button>
+                </div>
+                
+                <button id="start-quiz-btn" class="start-btn" disabled>Los geht's!</button>
+            </div>
+        </div>
+
+        <!-- Quiz Page -->
+        <div id="quiz-page" class="page">
+            <div class="quiz-header">
+                <div class="progress">
+                    Aufgabe <span id="current-question">1</span> von 10
+                </div>
+                <div class="score-display">
+                    Richtig: <span id="current-score">0</span>
+                </div>
+            </div>
+            
+            <div class="question-container">
+                <div class="question">
+                    <span id="num1" class="number">0</span>
+                    <span id="operator" class="operator">+</span>
+                    <span id="num2" class="number">0</span>
+                    <span class="equals">=</span>
+                </div>
+                
+                <div class="answer-input">
+                    <input type="number" id="answer-input" placeholder="Deine Antwort" autofocus>
+                </div>
+                
+                <button id="submit-answer-btn" class="submit-btn">Fertig</button>
+                <button id="next-question-btn" class="next-btn" style="display: none;">Weiter</button>
+                
+                <div id="feedback" class="feedback"></div>
+            </div>
+        </div>
+
+        <!-- Correct Answer Page -->
+        <div id="correct-page" class="page">
+            <div class="correct-animation">
+                <div class="checkmark-circle">
+                    <div class="checkmark">✓</div>
+                </div>
+                <h1 class="correct-message">Richtig!</h1>
+                <p class="correct-submessage">Super gemacht! 🌟</p>
+            </div>
+        </div>
+
+        <!-- Results Page -->
+        <div id="results-page" class="page">
+            <h1>Fertig! Super gemacht!</h1>
+            <div class="results-content">
+                <div class="final-score">
+                    <div class="score-circle">
+                        <span id="final-score">0</span>
+                        <span class="score-total">von 10</span>
+                    </div>
+                </div>
+                
+                <div class="score-message" id="score-message"></div>
+                
+                <div class="results-details">
+                    <p>Richtig: <strong id="correct-count">0</strong></p>
+                    <p>Falsch: <strong id="incorrect-count">0</strong></p>
+                </div>
+                
+                <button id="restart-btn" class="start-btn">Nochmal üben</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

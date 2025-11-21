@@ -1,0 +1,2 @@
+# Python dependencies for Calculus Study Program
+# Add required packages here as the project develops
