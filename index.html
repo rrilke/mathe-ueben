@@ -8,10 +8,11 @@
 </head>
 <body>
     <div class="container">
-        <!-- Profile Selection Page -->
-        <div id="profile-page" class="page active">
-            <h1>Wer möchte üben?</h1>
-            <div class="profile-content">
+        <!-- Combined Profile & Settings Page -->
+        <div id="settings-page" class="page active">
+            <h1>Rechnen Üben</h1>
+            <div class="settings-content">
+                <h2>Wer möchte üben?</h2>
                 <div class="profile-buttons">
                     <button class="profile-btn" data-profile="Alja">
                         <span class="profile-icon">👧</span>
@@ -30,13 +31,7 @@
                         <span class="profile-name">Papa</span>
                     </button>
                 </div>
-            </div>
-        </div>
 
-        <!-- Settings Page -->
-        <div id="settings-page" class="page">
-            <h1>Rechnen Üben</h1>
-            <div class="settings-content">
                 <h2>Was möchtest du üben?</h2>
                 <div class="operation-buttons">
                     <button class="operation-btn" data-operation="addition">
@@ -51,6 +46,12 @@
                         <span class="operation-symbol">+ −</span>
                         <span class="operation-name">Gemischt</span>
                     </button>
+                </div>
+                <div class="visual-toggle-row">
+                    <label class="visual-toggle-label">
+                        <input type="checkbox" id="visual-toggle" checked>
+                        <span>Hilfssymbole anzeigen</span>
+                    </label>
                 </div>
                 
                 <h2>Welche Zahlen möchtest du üben?</h2>
@@ -85,11 +86,17 @@
             </div>
             
             <div class="question-container">
-                <div class="question">
+                <div class="question-row">
                     <span id="num1" class="number">0</span>
                     <span id="operator" class="operator">+</span>
                     <span id="num2" class="number">0</span>
                     <span class="equals">=</span>
+                </div>
+                <div class="visual-row">
+                    <div id="num1-visual" class="visual-aid"></div>
+                    <div style="width: 40px;"></div>
+                    <div id="num2-visual" class="visual-aid"></div>
+                    <span id="visual-operator" class="visual-operator">+</span>
                 </div>
                 
                 <div class="answer-input">

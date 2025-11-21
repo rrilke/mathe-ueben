@@ -1,3 +1,31 @@
+.visual-toggle-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 10px;
+}
+.visual-toggle-label {
+    font-size: 1.1em;
+    color: #333;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+}
+.visual-toggle-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #667eea;
+}
+.visual-operator {
+    font-size: 2em;
+    color: #667eea;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    margin: 0 2px 0 2px;
+}
 * {
     margin: 0;
     padding: 0;
@@ -88,6 +116,12 @@ h2 {
 .profile-btn:hover {
     transform: translateY(-5px) scale(1.05);
     box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+}
+
+.profile-btn.selected {
+    background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+    box-shadow: 0 8px 20px rgba(72, 187, 120, 0.4);
+    transform: scale(1.05);
 }
 
 .profile-icon {
@@ -237,21 +271,52 @@ h2 {
     gap: 30px;
 }
 
-.question {
+
+
+.question-row {
     display: flex;
     align-items: center;
-    gap: 20px;
-    font-size: 3em;
+    justify-content: center;
+    gap: 18px;
+    font-size: 2.5em;
     font-weight: bold;
     color: #333;
+    margin-bottom: 10px;
 }
 
-.number, .operator, .equals {
-    padding: 20px;
+.visual-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 18px;
+    margin-bottom: 10px;
+}
+
+.number {
+    padding: 0 10px;
+}
+
+.visual-aid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 2px;
+    justify-items: center;
+    min-height: 24px;
+    max-width: 90px;
+    margin: 0 auto 0 auto;
+}
+
+
+.visual-emoji {
+    font-size: 1.1em;
+    margin: 0.5px;
+    line-height: 1.1;
+    display: inline-block;
 }
 
 .operator {
     color: #667eea;
+    padding: 20px;
 }
 
 .answer-input {

@@ -1,15 +1,15 @@
 // Game state
 let selectedProfile = null;
 let selectedOperation = null;
-let selectedRange = 10; // Default range 0-10
+let selectedRange = 10;
 let currentQuestion = 0;
 let score = 0;
 let questions = [];
 let startTime = null;
 let endTime = null;
+let visualIcon = '🍎';
 
 // DOM elements
-const profilePage = document.getElementById('profile-page');
 const settingsPage = document.getElementById('settings-page');
 const quizPage = document.getElementById('quiz-page');
 const correctPage = document.getElementById('correct-page');
@@ -23,15 +23,16 @@ const nextQuestionBtn = document.getElementById('next-question-btn');
 const restartBtn = document.getElementById('restart-btn');
 const answerInput = document.getElementById('answer-input');
 
-// Profile selection
+// Event listeners
 profileButtons.forEach(btn => {
     btn.addEventListener('click', () => {
+        profileButtons.forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
         selectedProfile = btn.dataset.profile;
-        showPage('settings');
+        checkStartButton();
     });
 });
 
-// Settings page - Operation selection
 operationButtons.forEach(btn => {
     btn.addEventListener('click', () => {
         operationButtons.forEach(b => b.classList.remove('selected'));
@@ -41,127 +42,124 @@ operationButtons.forEach(btn => {
     });
 });
 
-// Settings page - Range selection
 rangeButtons.forEach(btn => {
     btn.addEventListener('click', () => {
         rangeButtons.forEach(b => b.classList.remove('selected'));
         btn.classList.add('selected');
         selectedRange = parseInt(btn.dataset.range);
+        checkStartButton();
     });
 });
 
-// Check if start button should be enabled
 function checkStartButton() {
-    startQuizBtn.disabled = !selectedOperation;
+    startQuizBtn.disabled = !(selectedProfile && selectedOperation && selectedRange);
 }
 
-// Start quiz
 startQuizBtn.addEventListener('click', () => {
-    if (selectedOperation) {
+    if (selectedProfile && selectedOperation && selectedRange) {
         initializeQuiz();
         showPage('quiz');
     }
 });
 
-// Submit answer
-submitAnswerBtn.addEventListener('click', submitAnswer);
-
-// Next question button
-nextQuestionBtn.addEventListener('click', moveToNextQuestion);
-
-// Enter key to submit or check correction
-answerInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-        // If next button is visible, user is correcting - treat as submit
-        if (nextQuestionBtn.style.display === 'block') {
-            submitAnswer();
-        } else {
-            submitAnswer();
-        }
-    }
-});
-
-// Restart quiz
 restartBtn.addEventListener('click', () => {
     resetGame();
-    showPage('profile');
+    showPage('settings');
 });
 
-// Initialize quiz
 function initializeQuiz() {
     currentQuestion = 0;
     score = 0;
+    const icons = ['🍎','⭐','🧡','🦋','🐻','🌼','🍀','🐞','🍓','🌟','🐠','🍩','🍪','🦄','🐧','🍉','🍌','🍒','🦊','🐸'];
+    visualIcon = icons[Math.floor(Math.random() * icons.length)];
     questions = generateQuestions();
-    startTime = Date.now(); // Start timer
+    startTime = Date.now();
     updateQuizDisplay();
 }
 
-// Generate 10 random questions
-function generateQuestions() {
-    const questionsArray = [];
-    for (let i = 0; i < 10; i++) {
-        let num1, num2, correctAnswer, operation;
-        
-        // Determine operation for this question
-        if (selectedOperation === 'mixed') {
-            // Randomly choose between addition and subtraction
-            operation = Math.random() < 0.5 ? 'addition' : 'subtraction';
-        } else {
-            operation = selectedOperation;
-        }
-        
-        if (operation === 'addition') {
-            num1 = Math.floor(Math.random() * (selectedRange + 1)); // 0 to selectedRange
-            num2 = Math.floor(Math.random() * (selectedRange + 1)); // 0 to selectedRange
-            correctAnswer = num1 + num2;
-        } else {
-            // For subtraction, ensure num1 >= num2 to avoid negative results
-            // Generate two numbers and use the larger as num1
-            const temp1 = Math.floor(Math.random() * (selectedRange + 1)); // 0 to selectedRange
-            const temp2 = Math.floor(Math.random() * (selectedRange + 1)); // 0 to selectedRange
-            num1 = Math.max(temp1, temp2); // Larger number first
-            num2 = Math.min(temp1, temp2); // Smaller number second
-            correctAnswer = num1 - num2;
-        }
-        
-        questionsArray.push({
-            num1: num1,
-            num2: num2,
-            correctAnswer: correctAnswer,
-            operation: operation
-        });
-    }
-    return questionsArray;
-}
-
-// Update quiz display
 function updateQuizDisplay() {
     const question = questions[currentQuestion];
     document.getElementById('num1').textContent = question.num1;
     document.getElementById('num2').textContent = question.num2;
+    const showVisuals = typeof window.visualAidsEnabled === 'undefined' ? true : window.visualAidsEnabled;
+    document.getElementById('num1-visual').style.display = showVisuals ? '' : 'none';
+    document.getElementById('num2-visual').style.display = showVisuals ? '' : 'none';
+    document.getElementById('visual-operator').style.display = showVisuals ? '' : 'none';
+    if (showVisuals) {
+        renderVisualAid('num1-visual', question.num1, question.icon);
+        renderVisualAid('num2-visual', question.num2, question.icon);
+        document.getElementById('visual-operator').textContent = question.operation === 'addition' ? '+' : '−';
+    }
     document.getElementById('current-question').textContent = currentQuestion + 1;
     document.getElementById('current-score').textContent = score;
-    
-    // Set operator symbol based on the specific question's operation
     const operatorSymbol = question.operation === 'addition' ? '+' : '−';
     document.getElementById('operator').textContent = operatorSymbol;
-    
-    // Clear input and feedback
     answerInput.value = '';
     document.getElementById('feedback').textContent = '';
     document.getElementById('feedback').className = 'feedback';
-    
-    // Reset buttons
     submitAnswerBtn.style.display = 'block';
     nextQuestionBtn.style.display = 'none';
     submitAnswerBtn.disabled = false;
     answerInput.disabled = false;
-    
-    // Focus on input
     answerInput.focus();
 }
 
-// Submit answer
+function renderVisualAid(elementId, value, iconChar) {
+    const container = document.getElementById(elementId);
+    container.innerHTML = '';
+    for (let i = 0; i < value; i++) {
+        const icon = document.createElement('span');
+        icon.className = 'visual-emoji';
+        icon.textContent = iconChar;
+        container.appendChild(icon);
+    }
+}
+
+const visualToggle = document.getElementById('visual-toggle');
+window.visualAidsEnabled = true;
+if (visualToggle) {
+    visualToggle.addEventListener('change', function() {
+        window.visualAidsEnabled = visualToggle.checked;
+        // Update display immediately when toggled
+        if (document.getElementById('quiz-page').classList.contains('active')) {
+            updateQuizDisplay();
+        }
+    });
+}
+
+function generateQuestions() {
+    const questions = [];
+    for (let i = 0; i < 10; i++) {
+        let num1, num2, operation, correctAnswer;
+        let icon = visualIcon;
+        if (selectedOperation === 'mixed') {
+            operation = Math.random() < 0.5 ? 'addition' : 'subtraction';
+        } else {
+            operation = selectedOperation;
+        }
+        if (operation === 'addition') {
+            num1 = Math.floor(Math.random() * (selectedRange + 1));
+            num2 = Math.floor(Math.random() * (selectedRange + 1));
+            correctAnswer = num1 + num2;
+        } else {
+            num1 = Math.floor(Math.random() * (selectedRange + 1));
+            num2 = Math.floor(Math.random() * (selectedRange + 1));
+            if (num2 > num1) [num1, num2] = [num2, num1]; // Avoid negative results
+            correctAnswer = num1 - num2;
+        }
+        questions.push({ num1, num2, operation, correctAnswer, icon });
+    }
+    return questions;
+}
+
+submitAnswerBtn.addEventListener('click', submitAnswer);
+nextQuestionBtn.addEventListener('click', moveToNextQuestion);
+answerInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        submitAnswer();
+    }
+});
+
 function submitAnswer() {
     const userAnswer = parseInt(answerInput.value);
     
@@ -318,15 +316,12 @@ function displayRanking(profile) {
 
 // Show specific page
 function showPage(pageName) {
-    profilePage.classList.remove('active');
     settingsPage.classList.remove('active');
     quizPage.classList.remove('active');
     correctPage.classList.remove('active');
     resultsPage.classList.remove('active');
     
-    if (pageName === 'profile') {
-        profilePage.classList.add('active');
-    } else if (pageName === 'settings') {
+    if (pageName === 'settings') {
         settingsPage.classList.add('active');
     } else if (pageName === 'quiz') {
         quizPage.classList.add('active');
@@ -339,13 +334,15 @@ function showPage(pageName) {
 
 // Reset game
 function resetGame() {
+    selectedProfile = null;
     selectedOperation = null;
-    selectedRange = 10; // Reset to default
+    selectedRange = 10;
     currentQuestion = 0;
     score = 0;
     questions = [];
     startTime = null;
     endTime = null;
+    profileButtons.forEach(btn => btn.classList.remove('selected'));
     operationButtons.forEach(btn => btn.classList.remove('selected'));
     rangeButtons.forEach(btn => {
         btn.classList.remove('selected');
