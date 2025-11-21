@@ -57,6 +57,48 @@ h2 {
     font-size: 1.5em;
 }
 
+/* Profile Page */
+.profile-content {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.profile-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.profile-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    padding: 40px 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: white;
+    font-size: 1em;
+}
+
+.profile-btn:hover {
+    transform: translateY(-5px) scale(1.05);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+}
+
+.profile-icon {
+    font-size: 4em;
+}
+
+.profile-name {
+    font-size: 1.5em;
+    font-weight: bold;
+}
+
 /* Settings Page */
 .settings-content {
     display: flex;
@@ -338,6 +380,69 @@ h2 {
     font-size: 1.3em;
 }
 
+/* Ranking Section */
+.ranking-section {
+    width: 100%;
+    margin-top: 20px;
+}
+
+.ranking-section h2 {
+    color: #667eea;
+    font-size: 1.5em;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.ranking-list {
+    width: 100%;
+}
+
+.ranking-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.ranking-table thead {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.ranking-table th {
+    padding: 12px;
+    text-align: center;
+    font-weight: bold;
+}
+
+.ranking-table td {
+    padding: 10px;
+    text-align: center;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.ranking-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.ranking-table tbody tr:hover {
+    background: #f8f9fa;
+}
+
+.ranking-table tbody tr:first-child {
+    background: #fff9e6;
+    font-weight: bold;
+}
+
+.no-results {
+    text-align: center;
+    color: #999;
+    font-style: italic;
+    padding: 20px;
+}
+
 /* Correct Answer Page */
 .correct-animation {
     display: flex;
@@ -429,9 +534,22 @@ h2 {
         grid-template-columns: 1fr;
     }
     
+    .profile-buttons {
+        grid-template-columns: 1fr;
+    }
+    
     .score-circle {
         width: 150px;
         height: 150px;
         font-size: 3em;
+    }
+    
+    .ranking-table {
+        font-size: 0.9em;
+    }
+    
+    .ranking-table th,
+    .ranking-table td {
+        padding: 8px 5px;
     }
 }

@@ -1,15 +1,20 @@
 // Game state
+let selectedProfile = null;
 let selectedOperation = null;
 let selectedRange = 10; // Default range 0-10
 let currentQuestion = 0;
 let score = 0;
 let questions = [];
+let startTime = null;
+let endTime = null;
 
 // DOM elements
+const profilePage = document.getElementById('profile-page');
 const settingsPage = document.getElementById('settings-page');
 const quizPage = document.getElementById('quiz-page');
 const correctPage = document.getElementById('correct-page');
 const resultsPage = document.getElementById('results-page');
+const profileButtons = document.querySelectorAll('.profile-btn');
 const operationButtons = document.querySelectorAll('.operation-btn');
 const rangeButtons = document.querySelectorAll('.range-btn');
 const startQuizBtn = document.getElementById('start-quiz-btn');
@@ -17,6 +22,14 @@ const submitAnswerBtn = document.getElementById('submit-answer-btn');
 const nextQuestionBtn = document.getElementById('next-question-btn');
 const restartBtn = document.getElementById('restart-btn');
 const answerInput = document.getElementById('answer-input');
+
+// Profile selection
+profileButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+        selectedProfile = btn.dataset.profile;
+        showPage('settings');
+    });
+});
 
 // Settings page - Operation selection
 operationButtons.forEach(btn => {
@@ -71,7 +84,7 @@ answerInput.addEventListener('keypress', (e) => {
 // Restart quiz
 restartBtn.addEventListener('click', () => {
     resetGame();
-    showPage('settings');
+    showPage('profile');
 });
 
 // Initialize quiz
@@ -79,6 +92,7 @@ function initializeQuiz() {
     currentQuestion = 0;
     score = 0;
     questions = generateQuestions();
+    startTime = Date.now(); // Start timer
     updateQuizDisplay();
 }
 
@@ -205,9 +219,23 @@ function moveToNextQuestion() {
 
 // Show results
 function showResults() {
+    endTime = Date.now();
+    const timeTaken = Math.floor((endTime - startTime) / 1000); // Time in seconds
+    
     document.getElementById('final-score').textContent = score;
     document.getElementById('correct-count').textContent = score;
     document.getElementById('incorrect-count').textContent = 10 - score;
+    
+    // Display time
+    const minutes = Math.floor(timeTaken / 60);
+    const seconds = timeTaken % 60;
+    document.getElementById('time-taken').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    
+    // Save result to localStorage
+    saveResult(selectedProfile, score, timeTaken);
+    
+    // Display ranking
+    displayRanking(selectedProfile);
     
     // Set message based on score
     const messageElement = document.getElementById('score-message');
@@ -226,14 +254,79 @@ function showResults() {
     showPage('results');
 }
 
+// Save result to localStorage
+function saveResult(profile, score, timeTaken) {
+    const result = {
+        profile: profile,
+        score: score,
+        time: timeTaken,
+        timestamp: new Date().toLocaleString('de-DE'),
+        date: Date.now()
+    };
+    
+    // Get existing results
+    let results = JSON.parse(localStorage.getItem('mathResults') || '[]');
+    
+    // Add new result
+    results.push(result);
+    
+    // Save back to localStorage
+    localStorage.setItem('mathResults', JSON.stringify(results));
+}
+
+// Display ranking for a profile
+function displayRanking(profile) {
+    const results = JSON.parse(localStorage.getItem('mathResults') || '[]');
+    
+    // Filter results for this profile and sort by score (desc) then time (asc)
+    const profileResults = results
+        .filter(r => r.profile === profile)
+        .sort((a, b) => {
+            if (b.score !== a.score) {
+                return b.score - a.score; // Higher score first
+            }
+            return a.time - b.time; // Faster time first
+        })
+        .slice(0, 5); // Top 5
+    
+    const rankingList = document.getElementById('ranking-list');
+    
+    if (profileResults.length === 0) {
+        rankingList.innerHTML = '<p class="no-results">Noch keine Ergebnisse</p>';
+        return;
+    }
+    
+    let html = '<table class="ranking-table">';
+    html += '<thead><tr><th>Platz</th><th>Punkte</th><th>Zeit</th><th>Datum</th></tr></thead><tbody>';
+    
+    profileResults.forEach((result, index) => {
+        const minutes = Math.floor(result.time / 60);
+        const seconds = result.time % 60;
+        const timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        
+        html += `<tr>
+            <td>${index + 1}</td>
+            <td>${result.score}/10</td>
+            <td>${timeStr}</td>
+            <td>${result.timestamp}</td>
+        </tr>`;
+    });
+    
+    html += '</tbody></table>';
+    rankingList.innerHTML = html;
+}
+
 // Show specific page
 function showPage(pageName) {
+    profilePage.classList.remove('active');
     settingsPage.classList.remove('active');
     quizPage.classList.remove('active');
     correctPage.classList.remove('active');
     resultsPage.classList.remove('active');
     
-    if (pageName === 'settings') {
+    if (pageName === 'profile') {
+        profilePage.classList.add('active');
+    } else if (pageName === 'settings') {
         settingsPage.classList.add('active');
     } else if (pageName === 'quiz') {
         quizPage.classList.add('active');
@@ -251,6 +344,8 @@ function resetGame() {
     currentQuestion = 0;
     score = 0;
     questions = [];
+    startTime = null;
+    endTime = null;
     operationButtons.forEach(btn => btn.classList.remove('selected'));
     rangeButtons.forEach(btn => {
         btn.classList.remove('selected');
