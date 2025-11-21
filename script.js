@@ -86,9 +86,17 @@ function initializeQuiz() {
 function generateQuestions() {
     const questionsArray = [];
     for (let i = 0; i < 10; i++) {
-        let num1, num2, correctAnswer;
+        let num1, num2, correctAnswer, operation;
         
-        if (selectedOperation === 'addition') {
+        // Determine operation for this question
+        if (selectedOperation === 'mixed') {
+            // Randomly choose between addition and subtraction
+            operation = Math.random() < 0.5 ? 'addition' : 'subtraction';
+        } else {
+            operation = selectedOperation;
+        }
+        
+        if (operation === 'addition') {
             num1 = Math.floor(Math.random() * (selectedRange + 1)); // 0 to selectedRange
             num2 = Math.floor(Math.random() * (selectedRange + 1)); // 0 to selectedRange
             correctAnswer = num1 + num2;
@@ -105,7 +113,8 @@ function generateQuestions() {
         questionsArray.push({
             num1: num1,
             num2: num2,
-            correctAnswer: correctAnswer
+            correctAnswer: correctAnswer,
+            operation: operation
         });
     }
     return questionsArray;
@@ -119,8 +128,8 @@ function updateQuizDisplay() {
     document.getElementById('current-question').textContent = currentQuestion + 1;
     document.getElementById('current-score').textContent = score;
     
-    // Set operator symbol
-    const operatorSymbol = selectedOperation === 'addition' ? '+' : '−';
+    // Set operator symbol based on the specific question's operation
+    const operatorSymbol = question.operation === 'addition' ? '+' : '−';
     document.getElementById('operator').textContent = operatorSymbol;
     
     // Clear input and feedback
