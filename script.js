@@ -94,8 +94,11 @@ function generateQuestions() {
             correctAnswer = num1 + num2;
         } else {
             // For subtraction, ensure num1 >= num2 to avoid negative results
-            num1 = Math.floor(Math.random() * (selectedRange + 1)); // 0 to selectedRange
-            num2 = Math.floor(Math.random() * (num1 + 1)); // 0 to num1
+            // Generate two numbers and use the larger as num1
+            const temp1 = Math.floor(Math.random() * (selectedRange + 1)); // 0 to selectedRange
+            const temp2 = Math.floor(Math.random() * (selectedRange + 1)); // 0 to selectedRange
+            num1 = Math.max(temp1, temp2); // Larger number first
+            num2 = Math.min(temp1, temp2); // Smaller number second
             correctAnswer = num1 - num2;
         }
         
