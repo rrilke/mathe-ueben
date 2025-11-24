@@ -70,8 +70,6 @@ restartBtn.addEventListener('click', () => {
 function initializeQuiz() {
     currentQuestion = 0;
     score = 0;
-    const icons = ['🍎','⭐','🧡','🦋','🐻','🌼','🍀','🐞','🍓','🌟','🐠','🍩','🍪','🦄','🐧','🍉','🍌','🍒','🦊','🐸'];
-    visualIcon = icons[Math.floor(Math.random() * icons.length)];
     questions = generateQuestions();
     startTime = Date.now();
     updateQuizDisplay();
@@ -128,10 +126,11 @@ if (visualToggle) {
 }
 
 function generateQuestions() {
+    const icons = ['🍎','⭐','🧡','🦋','🐻','🌼','🍀','🐞','🍓','🌟','🐠','🍩','🍪','🦄','🐧','🍉','🍌','🍒','🦊','🐸'];
     const questions = [];
     for (let i = 0; i < 10; i++) {
         let num1, num2, operation, correctAnswer;
-        let icon = visualIcon;
+        let icon = icons[Math.floor(Math.random() * icons.length)];
         if (selectedOperation === 'mixed') {
             operation = Math.random() < 0.5 ? 'addition' : 'subtraction';
         } else {
