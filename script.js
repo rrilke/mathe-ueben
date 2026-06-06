@@ -72,9 +72,12 @@ const answerInput = document.getElementById('answer-input');
 const numpad = document.getElementById('numpad');
 const soundToggle = document.getElementById('sound-toggle');
 const visualToggle = document.getElementById('visual-toggle');
+const speakToggle = document.getElementById('speak-toggle');
+const speakBtn = document.getElementById('speak-btn');
 
 let visualAidsEnabled = true;
 let soundEnabled = true;
+let speakEnabled = true;
 
 // ============================================================
 // Build the settings UI from CONFIG (data-driven)
@@ -132,12 +135,14 @@ function checkStartButton() {
 // ============================================================
 startQuizBtn.addEventListener('click', () => {
     if (selectedProfile && selectedOperation && selectedRange && selectedQuestionCount) {
+        unlockSpeech(); // prime read-aloud inside the user gesture (iOS)
         initializeQuiz();
         showPage('quiz');
     }
 });
 
 backBtn.addEventListener('click', () => {
+    cancelSpeech();
     showPage('settings');
 });
 
@@ -214,6 +219,8 @@ function updateQuizDisplay() {
     submitAnswerBtn.disabled = false;
     answerInput.disabled = false;
     answerInput.focus();
+
+    scheduleSpeak(question); // read the task aloud after a short delay
 }
 
 function updateStreakDisplay() {
@@ -391,6 +398,8 @@ answerInput.addEventListener('keypress', (e) => {
 function submitAnswer() {
     const userAnswer = parseInt(answerInput.value, 10);
     if (isNaN(userAnswer)) return;
+
+    cancelSpeech(); // stop any pending/ongoing read-aloud once she answers
 
     const question = questions[currentQuestion];
     const feedback = document.getElementById('feedback');
@@ -591,6 +600,55 @@ function playWrong()   { unlockAudio(); tone(200, 0, 0.25, 'sawtooth'); }
 function playFinish()  { unlockAudio(); [523, 659, 784, 1047].forEach((f, i) => tone(f, i * 0.13, 0.25)); }
 
 // ============================================================
+// Read the task aloud (SpeechSynthesis) — e.g. "sieben plus acht"
+// ============================================================
+const SPEAK_WORD = { addition: 'plus', subtraction: 'minus', multiplication: 'mal' };
+const SPEAK_DELAY_MS = 2000;
+const speechOK = 'speechSynthesis' in window;
+let speakTimer = null;
+let germanVoice = null;
+
+function loadGermanVoice() {
+    if (!speechOK) return;
+    const voices = window.speechSynthesis.getVoices() || [];
+    germanVoice = voices.find(v => v.lang && v.lang.toLowerCase().startsWith('de')) || germanVoice;
+}
+if (speechOK) {
+    loadGermanVoice();
+    window.speechSynthesis.onvoiceschanged = loadGermanVoice;
+}
+
+// Prime the speech engine inside a user gesture (required by iOS/Safari).
+function unlockSpeech() {
+    if (!speechOK || !speakEnabled) return;
+    const u = new SpeechSynthesisUtterance(' ');
+    u.volume = 0;
+    u.lang = 'de-DE';
+    try { window.speechSynthesis.speak(u); } catch (e) { /* ignore */ }
+}
+
+function speakQuestion(q) {
+    if (!speechOK || !speakEnabled || !q) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(`${q.num1} ${SPEAK_WORD[q.operation]} ${q.num2}`);
+    u.lang = 'de-DE';
+    u.rate = 0.85;
+    if (germanVoice) u.voice = germanVoice;
+    window.speechSynthesis.speak(u);
+}
+
+function cancelSpeech() {
+    if (speakTimer) { clearTimeout(speakTimer); speakTimer = null; }
+    if (speechOK) window.speechSynthesis.cancel();
+}
+
+function scheduleSpeak(q) {
+    cancelSpeech();
+    if (!speakEnabled) return;
+    speakTimer = setTimeout(() => speakQuestion(q), SPEAK_DELAY_MS);
+}
+
+// ============================================================
 // Toggles
 // ============================================================
 visualToggle.addEventListener('change', () => {
@@ -603,6 +661,16 @@ visualToggle.addEventListener('change', () => {
 soundToggle.addEventListener('change', () => {
     soundEnabled = soundToggle.checked;
     if (soundEnabled) unlockAudio();
+});
+
+speakToggle.addEventListener('change', () => {
+    speakEnabled = speakToggle.checked;
+    if (speakEnabled) unlockSpeech();
+    else cancelSpeech();
+});
+
+speakBtn.addEventListener('click', () => {
+    speakQuestion(questions[currentQuestion]); // direct tap = reliable on iOS
 });
 
 // ============================================================
@@ -646,6 +714,7 @@ function showPage(pageName) {
 }
 
 function resetGame() {
+    cancelSpeech();
     selectedProfile = null;
     selectedOperation = null;
     selectedRange = CONFIG.defaultRange;

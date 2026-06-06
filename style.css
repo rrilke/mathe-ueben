@@ -442,6 +442,27 @@ h2 {
     padding: 20px;
 }
 
+.speak-btn {
+    margin-left: 12px;
+    font-size: 0.55em;
+    background: #eef0ff;
+    border: 2px solid #c7cdf5;
+    border-radius: 50%;
+    width: 1.8em;
+    height: 1.8em;
+    cursor: pointer;
+    line-height: 1;
+    transition: all 0.2s ease;
+}
+
+.speak-btn:hover {
+    background: #667eea;
+}
+
+.speak-btn:active {
+    transform: scale(0.92);
+}
+
 .answer-input {
     width: 100%;
 }
