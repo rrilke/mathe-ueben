@@ -365,6 +365,7 @@ h2 {
     font-size: 0.95em;
     color: #666;
     font-weight: bold;
+    min-height: 1.1em;
 }
 
 .nl-removed .nl-dot {

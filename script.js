@@ -314,7 +314,9 @@ function buildNumberLine(row, opts) {
 
         const label = document.createElement('span');
         label.className = 'nl-label';
-        label.textContent = i;
+        // Only label the start ("von der man aus zählt"); the hop steps stay
+        // unlabelled so the child has to count them instead of reading the answer.
+        label.textContent = (i === opts.start) ? i : '';
 
         tick.append(hop, dot, label);
         track.appendChild(tick);
