@@ -1,65 +1,144 @@
+// ============================================================
+// Configuration — change the app's behaviour here, not in the logic below
+// ============================================================
+const CONFIG = {
+    // Add or remove a child by editing this list — the buttons build themselves.
+    profiles: [
+        { id: 'Alja', icon: '👧' },
+        { id: 'Juri', icon: '👦' },
+        { id: 'Mama', icon: '👩' },
+        { id: 'Papa', icon: '👨' },
+        { id: 'Gast', icon: '👤' },
+    ],
+    operations: [
+        { id: 'addition',       symbol: '+',   name: 'Plus' },
+        { id: 'subtraction',    symbol: '−',   name: 'Minus' },
+        { id: 'mixed',          symbol: '+ −', name: 'Gemischt' },
+        { id: 'multiplication', symbol: '×',   name: 'Malnehmen' },
+    ],
+    ranges: [
+        { value: 5,  label: '0 bis 5',  desc: 'Leicht' },
+        { value: 10, label: '0 bis 10', desc: 'Mittel' },
+        { value: 20, label: '0 bis 20', desc: 'Schwer' },
+    ],
+    questionCounts: [5, 10, 20],
+    icons: ['🍎','⭐','🧡','🦋','🐻','🌼','🍀','🐞','🍓','🌟','🐠','🍩','🍪','🦄','🐧','🍉','🍌','🍒','🦊','🐸'],
+
+    defaultRange: 10,
+    defaultQuestionCount: 10,
+    multiplicationMaxFactor: 10, // times tables stay friendly regardless of range
+    maxVisualIcons: 60,          // above this we hide helper symbols (too many to count)
+    celebrationMs: 1500,
+};
+
+const OPERATOR_SYMBOLS = { addition: '+', subtraction: '−', multiplication: '×' };
+const STORAGE_KEY = 'mathResults';
+const STORAGE_VERSION = 2;
+
+// ============================================================
 // Game state
+// ============================================================
 let selectedProfile = null;
 let selectedOperation = null;
-let selectedRange = 10;
+let selectedRange = CONFIG.defaultRange;
+let selectedQuestionCount = CONFIG.defaultQuestionCount;
 let currentQuestion = 0;
 let score = 0;
 let questions = [];
 let startTime = null;
 let endTime = null;
-let visualIcon = '🍎';
+let currentStreak = 0;
+let bestStreak = 0;
 
+// ============================================================
 // DOM elements
-const settingsPage = document.getElementById('settings-page');
-const quizPage = document.getElementById('quiz-page');
-const correctPage = document.getElementById('correct-page');
-const resultsPage = document.getElementById('results-page');
-const profileButtons = document.querySelectorAll('.profile-btn');
-const operationButtons = document.querySelectorAll('.operation-btn');
-const rangeButtons = document.querySelectorAll('.range-btn');
+// ============================================================
+const pages = {
+    settings: document.getElementById('settings-page'),
+    quiz: document.getElementById('quiz-page'),
+    correct: document.getElementById('correct-page'),
+    results: document.getElementById('results-page'),
+};
+const profileContainer = document.getElementById('profile-buttons');
+const operationContainer = document.getElementById('operation-buttons');
+const rangeContainer = document.getElementById('range-buttons');
+const countContainer = document.getElementById('count-buttons');
 const startQuizBtn = document.getElementById('start-quiz-btn');
 const submitAnswerBtn = document.getElementById('submit-answer-btn');
 const nextQuestionBtn = document.getElementById('next-question-btn');
+const backBtn = document.getElementById('back-btn');
 const restartBtn = document.getElementById('restart-btn');
 const answerInput = document.getElementById('answer-input');
+const numpad = document.getElementById('numpad');
+const soundToggle = document.getElementById('sound-toggle');
+const visualToggle = document.getElementById('visual-toggle');
 
-// Event listeners
-profileButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-        profileButtons.forEach(b => b.classList.remove('selected'));
-        btn.classList.add('selected');
-        selectedProfile = btn.dataset.profile;
-        checkStartButton();
-    });
-});
+let visualAidsEnabled = true;
+let soundEnabled = true;
 
-operationButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-        operationButtons.forEach(b => b.classList.remove('selected'));
-        btn.classList.add('selected');
-        selectedOperation = btn.dataset.operation;
-        checkStartButton();
-    });
-});
+// ============================================================
+// Build the settings UI from CONFIG (data-driven)
+// ============================================================
+function buildSettings() {
+    profileContainer.innerHTML = CONFIG.profiles.map(p => `
+        <button class="profile-btn" data-profile="${p.id}">
+            <span class="profile-icon">${p.icon}</span>
+            <span class="profile-name">${p.id}</span>
+        </button>`).join('');
 
-rangeButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-        rangeButtons.forEach(b => b.classList.remove('selected'));
-        btn.classList.add('selected');
-        selectedRange = parseInt(btn.dataset.range);
-        checkStartButton();
-    });
-});
+    operationContainer.innerHTML = CONFIG.operations.map(o => `
+        <button class="operation-btn" data-operation="${o.id}">
+            <span class="operation-symbol">${o.symbol}</span>
+            <span class="operation-name">${o.name}</span>
+        </button>`).join('');
 
-function checkStartButton() {
-    startQuizBtn.disabled = !(selectedProfile && selectedOperation && selectedRange);
+    rangeContainer.innerHTML = CONFIG.ranges.map(r => `
+        <button class="range-btn${r.value === CONFIG.defaultRange ? ' selected' : ''}" data-range="${r.value}">
+            <span class="range-label">${r.label}</span>
+            <span class="range-desc">${r.desc}</span>
+        </button>`).join('');
+
+    countContainer.innerHTML = CONFIG.questionCounts.map(c => `
+        <button class="count-btn${c === CONFIG.defaultQuestionCount ? ' selected' : ''}" data-count="${c}">
+            ${c}
+        </button>`).join('');
+
+    // Single-select handlers for each group
+    wireSingleSelect(profileContainer, '.profile-btn', btn => { selectedProfile = btn.dataset.profile; });
+    wireSingleSelect(operationContainer, '.operation-btn', btn => { selectedOperation = btn.dataset.operation; });
+    wireSingleSelect(rangeContainer, '.range-btn', btn => { selectedRange = parseInt(btn.dataset.range, 10); });
+    wireSingleSelect(countContainer, '.count-btn', btn => { selectedQuestionCount = parseInt(btn.dataset.count, 10); });
 }
 
+function wireSingleSelect(container, selector, onSelect) {
+    const buttons = container.querySelectorAll(selector);
+    buttons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            buttons.forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            onSelect(btn);
+            unlockAudio();
+            checkStartButton();
+        });
+    });
+}
+
+function checkStartButton() {
+    startQuizBtn.disabled = !(selectedProfile && selectedOperation && selectedRange && selectedQuestionCount);
+}
+
+// ============================================================
+// Quiz lifecycle
+// ============================================================
 startQuizBtn.addEventListener('click', () => {
-    if (selectedProfile && selectedOperation && selectedRange) {
+    if (selectedProfile && selectedOperation && selectedRange && selectedQuestionCount) {
         initializeQuiz();
         showPage('quiz');
     }
+});
+
+backBtn.addEventListener('click', () => {
+    showPage('settings');
 });
 
 restartBtn.addEventListener('click', () => {
@@ -70,31 +149,66 @@ restartBtn.addEventListener('click', () => {
 function initializeQuiz() {
     currentQuestion = 0;
     score = 0;
+    currentStreak = 0;
+    bestStreak = 0;
     questions = generateQuestions();
     startTime = Date.now();
     updateQuizDisplay();
 }
 
+function generateQuestions() {
+    const list = [];
+    for (let i = 0; i < selectedQuestionCount; i++) {
+        const icon = CONFIG.icons[Math.floor(Math.random() * CONFIG.icons.length)];
+        let operation = selectedOperation;
+        if (operation === 'mixed') {
+            operation = Math.random() < 0.5 ? 'addition' : 'subtraction';
+        }
+
+        let num1, num2, correctAnswer;
+        if (operation === 'addition') {
+            num1 = randInt(selectedRange);
+            num2 = randInt(selectedRange);
+            correctAnswer = num1 + num2;
+        } else if (operation === 'subtraction') {
+            num1 = randInt(selectedRange);
+            num2 = randInt(selectedRange);
+            if (num2 > num1) [num1, num2] = [num2, num1]; // never negative
+            correctAnswer = num1 - num2;
+        } else { // multiplication — keep factors in times-table range
+            const cap = Math.min(selectedRange, CONFIG.multiplicationMaxFactor);
+            num1 = randInt(cap);
+            num2 = randInt(cap);
+            correctAnswer = num1 * num2;
+        }
+
+        list.push({ num1, num2, operation, correctAnswer, icon });
+    }
+    return list;
+}
+
+function randInt(max) {
+    return Math.floor(Math.random() * (max + 1));
+}
+
 function updateQuizDisplay() {
     const question = questions[currentQuestion];
+
     document.getElementById('num1').textContent = question.num1;
     document.getElementById('num2').textContent = question.num2;
-    const showVisuals = typeof window.visualAidsEnabled === 'undefined' ? true : window.visualAidsEnabled;
-    document.getElementById('num1-visual').style.display = showVisuals ? '' : 'none';
-    document.getElementById('num2-visual').style.display = showVisuals ? '' : 'none';
-    document.getElementById('visual-operator').style.display = showVisuals ? '' : 'none';
-    if (showVisuals) {
-        renderVisualAid('num1-visual', question.num1, question.icon);
-        renderVisualAid('num2-visual', question.num2, question.icon);
-        document.getElementById('visual-operator').textContent = question.operation === 'addition' ? '+' : '−';
-    }
+    document.getElementById('operator').textContent = OPERATOR_SYMBOLS[question.operation];
+
     document.getElementById('current-question').textContent = currentQuestion + 1;
+    document.getElementById('total-questions').textContent = selectedQuestionCount;
     document.getElementById('current-score').textContent = score;
-    const operatorSymbol = question.operation === 'addition' ? '+' : '−';
-    document.getElementById('operator').textContent = operatorSymbol;
+    updateStreakDisplay();
+
+    renderVisuals(question);
+
     answerInput.value = '';
-    document.getElementById('feedback').textContent = '';
-    document.getElementById('feedback').className = 'feedback';
+    const feedback = document.getElementById('feedback');
+    feedback.textContent = '';
+    feedback.className = 'feedback';
     submitAnswerBtn.style.display = 'block';
     nextQuestionBtn.style.display = 'none';
     submitAnswerBtn.disabled = false;
@@ -102,252 +216,463 @@ function updateQuizDisplay() {
     answerInput.focus();
 }
 
-function renderVisualAid(elementId, value, iconChar) {
-    const container = document.getElementById(elementId);
-    container.innerHTML = '';
-    for (let i = 0; i < value; i++) {
-        const icon = document.createElement('span');
-        icon.className = 'visual-emoji';
-        icon.textContent = iconChar;
-        container.appendChild(icon);
+function updateStreakDisplay() {
+    const streakEl = document.getElementById('streak-display');
+    if (!streakEl) return;
+    if (currentStreak >= 2) {
+        streakEl.textContent = `🔥 ${currentStreak}`;
+        streakEl.style.visibility = 'visible';
+    } else {
+        streakEl.style.visibility = 'hidden';
     }
 }
 
-const visualToggle = document.getElementById('visual-toggle');
-window.visualAidsEnabled = true;
-if (visualToggle) {
-    visualToggle.addEventListener('change', function() {
-        window.visualAidsEnabled = visualToggle.checked;
-        // Update display immediately when toggled
-        if (document.getElementById('quiz-page').classList.contains('active')) {
-            updateQuizDisplay();
-        }
+// ------------------------------------------------------------
+// Visual helper symbols
+// ------------------------------------------------------------
+function renderVisuals(question) {
+    const visualRow = document.querySelector('.visual-row');
+
+    const totalIcons = question.operation === 'multiplication'
+        ? question.num1 * question.num2
+        : question.num1 + question.num2;
+
+    const show = visualAidsEnabled && totalIcons <= CONFIG.maxVisualIcons;
+    visualRow.style.display = show ? '' : 'none';
+    if (!show) return;
+
+    visualRow.innerHTML = '';
+    if (question.operation === 'addition') {
+        renderAddition(visualRow, question);
+    } else if (question.operation === 'subtraction') {
+        renderNumberLine(visualRow, question);
+    } else {
+        renderRepeatedAddition(visualRow, question);
+    }
+}
+
+// Plus: a number line; hop num2 steps forward from num1 to land on the sum.
+function renderAddition(row, q) {
+    const sum = q.num1 + q.num2;
+    buildNumberLine(row, {
+        start: q.num1,
+        end: sum,
+        mode: 'forward',
+        caption: `Von ${q.num1} aus ${q.num2} weiter → ${sum}`,
     });
 }
 
-function generateQuestions() {
-    const icons = ['🍎','⭐','🧡','🦋','🐻','🌼','🍀','🐞','🍓','🌟','🐠','🍩','🍪','🦄','🐧','🍉','🍌','🍒','🦊','🐸'];
-    const questions = [];
-    for (let i = 0; i < 10; i++) {
-        let num1, num2, operation, correctAnswer;
-        let icon = icons[Math.floor(Math.random() * icons.length)];
-        if (selectedOperation === 'mixed') {
-            operation = Math.random() < 0.5 ? 'addition' : 'subtraction';
-        } else {
-            operation = selectedOperation;
-        }
-        if (operation === 'addition') {
-            num1 = Math.floor(Math.random() * (selectedRange + 1));
-            num2 = Math.floor(Math.random() * (selectedRange + 1));
-            correctAnswer = num1 + num2;
-        } else {
-            num1 = Math.floor(Math.random() * (selectedRange + 1));
-            num2 = Math.floor(Math.random() * (selectedRange + 1));
-            if (num2 > num1) [num1, num2] = [num2, num1]; // Avoid negative results
-            correctAnswer = num1 - num2;
-        }
-        questions.push({ num1, num2, operation, correctAnswer, icon });
-    }
-    return questions;
+// Minus: a number line; hop num2 steps back from num1 to land on the answer.
+function renderNumberLine(row, q) {
+    const answer = q.num1 - q.num2;
+    buildNumberLine(row, {
+        start: q.num1,
+        end: answer,
+        mode: 'back',
+        caption: `Von ${q.num1} aus ${q.num2} zurück → ${answer}`,
+    });
 }
 
+// Shared number-line renderer for plus (forward) and minus (back).
+function buildNumberLine(row, opts) {
+    row.className = 'visual-row numberline-row';
+
+    const line = document.createElement('div');
+    line.className = 'numberline';
+
+    // Span only the active part of the line (no leading 0..start clutter).
+    const lo = Math.min(opts.start, opts.end);
+    const hi = Math.max(opts.start, opts.end);
+
+    const track = document.createElement('div');
+    track.className = 'nl-track';
+    for (let i = lo; i <= hi; i++) {
+        const stepped = opts.mode === 'forward'
+            ? (i > opts.start && i <= opts.end)   // ticks hopped onto, going up
+            : (i >= opts.end && i < opts.start);  // ticks hopped onto, going down
+
+        const tick = document.createElement('div');
+        tick.className = 'nl-tick';
+        if (i === opts.start) tick.classList.add('nl-start');
+        else if (i === opts.end) tick.classList.add('nl-land');
+        else if (stepped) tick.classList.add(opts.mode === 'forward' ? 'nl-added' : 'nl-removed');
+
+        const hop = document.createElement('span');
+        hop.className = 'nl-hop';
+        hop.textContent = stepped ? (opts.mode === 'forward' ? '↪' : '↩') : '';
+
+        const dot = document.createElement('span');
+        dot.className = 'nl-dot';
+
+        const label = document.createElement('span');
+        label.className = 'nl-label';
+        label.textContent = i;
+
+        tick.append(hop, dot, label);
+        track.appendChild(tick);
+    }
+    line.appendChild(track);
+
+    const caption = document.createElement('div');
+    caption.className = 'nl-caption';
+    caption.textContent = opts.caption;
+    line.appendChild(caption);
+
+    row.appendChild(line);
+}
+
+// Mal: num1 groups of num2 icons, joined with + (multiplication as repeated addition).
+function renderRepeatedAddition(row, q) {
+    row.className = 'visual-row repeated-row';
+
+    const wrap = document.createElement('div');
+    wrap.className = 'repeated';
+
+    if (q.num1 === 0 || q.num2 === 0) {
+        const zero = document.createElement('div');
+        zero.className = 'nl-caption';
+        zero.textContent = `${q.num1} × ${q.num2} = 0`;
+        wrap.appendChild(zero);
+        row.appendChild(wrap);
+        return;
+    }
+
+    const groups = document.createElement('div');
+    groups.className = 'repeated-groups';
+    for (let g = 0; g < q.num1; g++) {
+        if (g > 0) groups.appendChild(operatorEl('+'));
+        const box = groupEl(q.num2, q.icon);
+        box.classList.add('repeated-box');
+        groups.appendChild(box);
+    }
+    wrap.appendChild(groups);
+
+    const caption = document.createElement('div');
+    caption.className = 'nl-caption';
+    caption.textContent = `${Array(q.num1).fill(q.num2).join(' + ')} = ${q.num1 * q.num2}`;
+    wrap.appendChild(caption);
+
+    row.appendChild(wrap);
+}
+
+function groupEl(value, iconChar) {
+    const container = document.createElement('div');
+    container.className = 'visual-aid';
+    for (let i = 0; i < value; i++) {
+        container.appendChild(makeIcon(iconChar));
+    }
+    return container;
+}
+
+function operatorEl(symbol) {
+    const op = document.createElement('span');
+    op.className = 'visual-operator';
+    op.textContent = symbol;
+    return op;
+}
+
+function makeIcon(iconChar) {
+    const icon = document.createElement('span');
+    icon.className = 'visual-emoji';
+    icon.textContent = iconChar;
+    return icon;
+}
+
+// ============================================================
+// Answering
+// ============================================================
 submitAnswerBtn.addEventListener('click', submitAnswer);
 nextQuestionBtn.addEventListener('click', moveToNextQuestion);
 answerInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-        submitAnswer();
-    }
+    if (e.key === 'Enter') submitAnswer();
 });
 
 function submitAnswer() {
-    const userAnswer = parseInt(answerInput.value);
-    
-    if (isNaN(userAnswer)) {
-        return; // Don't process if no answer
-    }
-    
+    const userAnswer = parseInt(answerInput.value, 10);
+    if (isNaN(userAnswer)) return;
+
     const question = questions[currentQuestion];
     const feedback = document.getElementById('feedback');
-    
+
     if (userAnswer === question.correctAnswer) {
-        // Check if this is a correction (next button was visible)
-        const wasCorrection = nextQuestionBtn.style.display === 'block';
-        
         score++;
+        currentStreak++;
+        bestStreak = Math.max(bestStreak, currentStreak);
         document.getElementById('current-score').textContent = score;
-        
-        // Show correct answer celebration page
+        playCorrect();
+
         showPage('correct');
-        
-        // Move to next question after showing celebration
         setTimeout(() => {
             currentQuestion++;
-            
-            if (currentQuestion < 10) {
+            if (currentQuestion < selectedQuestionCount) {
                 showPage('quiz');
                 updateQuizDisplay();
             } else {
                 showResults();
             }
-        }, 2000);
+        }, CONFIG.celebrationMs);
     } else {
-        feedback.textContent = `✗ Nicht ganz. Versuche es nochmal!`;
+        currentStreak = 0;
+        playWrong();
+        feedback.textContent = '✗ Nicht ganz. Versuche es nochmal!';
         feedback.className = 'feedback incorrect';
-        
-        // Hide submit button, show next button
         submitAnswerBtn.style.display = 'none';
         nextQuestionBtn.style.display = 'block';
-        
-        // Keep input enabled so she can try again
         answerInput.focus();
     }
 }
 
-// Move to next question
 function moveToNextQuestion() {
     currentQuestion++;
-    
-    if (currentQuestion < 10) {
+    if (currentQuestion < selectedQuestionCount) {
         updateQuizDisplay();
     } else {
         showResults();
     }
 }
 
-// Show results
+// ============================================================
+// Results
+// ============================================================
 function showResults() {
     endTime = Date.now();
-    const timeTaken = Math.floor((endTime - startTime) / 1000); // Time in seconds
-    
+    const timeTaken = Math.floor((endTime - startTime) / 1000);
+    const total = selectedQuestionCount;
+
     document.getElementById('final-score').textContent = score;
+    document.getElementById('final-total').textContent = total;
     document.getElementById('correct-count').textContent = score;
-    document.getElementById('incorrect-count').textContent = 10 - score;
-    
-    // Display time
-    const minutes = Math.floor(timeTaken / 60);
-    const seconds = timeTaken % 60;
-    document.getElementById('time-taken').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-    
-    // Save result to localStorage
-    saveResult(selectedProfile, score, timeTaken);
-    
-    // Display ranking
+    document.getElementById('incorrect-count').textContent = total - score;
+    document.getElementById('time-taken').textContent = formatTime(timeTaken);
+
+    saveResult(selectedProfile, score, total, timeTaken);
     displayRanking(selectedProfile);
-    
-    // Set message based on score
-    const messageElement = document.getElementById('score-message');
-    if (score === 10) {
-        messageElement.textContent = '🌟 Wow! Alles richtig! Du bist super!';
-    } else if (score >= 8) {
-        messageElement.textContent = '🎉 Toll gemacht! Fast alles richtig!';
-    } else if (score >= 6) {
-        messageElement.textContent = '👍 Gut gemacht! Übe weiter!';
-    } else if (score >= 4) {
-        messageElement.textContent = '💪 Das war schon ganz gut!';
-    } else {
-        messageElement.textContent = '📚 Üben, üben, üben! Du schaffst das!';
-    }
-    
+    displayBadges(score, total, timeTaken);
+
+    document.getElementById('score-message').textContent = scoreMessage(score, total);
+    playFinish();
     showPage('results');
 }
 
-// Save result to localStorage
-function saveResult(profile, score, timeTaken) {
-    const result = {
-        profile: profile,
-        score: score,
-        time: timeTaken,
-        timestamp: new Date().toLocaleString('de-DE'),
-        date: Date.now()
-    };
-    
-    // Get existing results
-    let results = JSON.parse(localStorage.getItem('mathResults') || '[]');
-    
-    // Add new result
-    results.push(result);
-    
-    // Save back to localStorage
-    localStorage.setItem('mathResults', JSON.stringify(results));
+function scoreMessage(score, total) {
+    const ratio = score / total;
+    if (ratio === 1)    return '🌟 Wow! Alles richtig! Du bist super!';
+    if (ratio >= 0.8)   return '🎉 Toll gemacht! Fast alles richtig!';
+    if (ratio >= 0.6)   return '👍 Gut gemacht! Übe weiter!';
+    if (ratio >= 0.4)   return '💪 Das war schon ganz gut!';
+    return '📚 Üben, üben, üben! Du schaffst das!';
 }
 
-// Display ranking for a profile
+function displayBadges(score, total, timeTaken) {
+    const badges = [];
+    if (score === total) badges.push({ icon: '🌟', label: 'Perfekt' });
+    if (bestStreak >= 5) badges.push({ icon: '🔥', label: `Serie ${bestStreak}` });
+    if (score >= total && total > 0 && timeTaken / total < 5) badges.push({ icon: '⚡', label: 'Blitzschnell' });
+
+    const container = document.getElementById('badges');
+    if (badges.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+    container.innerHTML = badges.map(b =>
+        `<div class="badge"><span class="badge-icon">${b.icon}</span><span class="badge-label">${b.label}</span></div>`
+    ).join('');
+}
+
+function formatTime(totalSeconds) {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
+
+// ============================================================
+// Persistence (versioned)
+// ============================================================
+function loadResults() {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;            // legacy v1 format
+        if (parsed && Array.isArray(parsed.results)) return parsed.results;
+        return [];
+    } catch {
+        return [];
+    }
+}
+
+function persistResults(results) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: STORAGE_VERSION, results }));
+}
+
+function saveResult(profile, score, total, timeTaken) {
+    const results = loadResults();
+    results.push({
+        profile,
+        score,
+        total,
+        time: timeTaken,
+        timestamp: new Date().toLocaleString('de-DE'),
+        date: Date.now(),
+    });
+    persistResults(results);
+}
+
 function displayRanking(profile) {
-    const results = JSON.parse(localStorage.getItem('mathResults') || '[]');
-    
-    // Filter results for this profile and sort by score (desc) then time (asc)
-    const profileResults = results
+    const results = loadResults()
         .filter(r => r.profile === profile)
         .sort((a, b) => {
-            if (b.score !== a.score) {
-                return b.score - a.score; // Higher score first
-            }
-            return a.time - b.time; // Faster time first
+            const aRatio = a.score / (a.total || 10);
+            const bRatio = b.score / (b.total || 10);
+            if (bRatio !== aRatio) return bRatio - aRatio; // best accuracy first
+            return a.time - b.time;                         // then fastest
         })
-        .slice(0, 5); // Top 5
-    
+        .slice(0, 5);
+
     const rankingList = document.getElementById('ranking-list');
-    
-    if (profileResults.length === 0) {
+    if (results.length === 0) {
         rankingList.innerHTML = '<p class="no-results">Noch keine Ergebnisse</p>';
         return;
     }
-    
-    let html = '<table class="ranking-table">';
-    html += '<thead><tr><th>Platz</th><th>Punkte</th><th>Zeit</th><th>Datum</th></tr></thead><tbody>';
-    
-    profileResults.forEach((result, index) => {
-        const minutes = Math.floor(result.time / 60);
-        const seconds = result.time % 60;
-        const timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-        
-        html += `<tr>
-            <td>${index + 1}</td>
-            <td>${result.score}/10</td>
-            <td>${timeStr}</td>
-            <td>${result.timestamp}</td>
-        </tr>`;
+
+    const rows = results.map((r, i) => `
+        <tr>
+            <td>${i + 1}</td>
+            <td>${r.score}/${r.total || 10}</td>
+            <td>${formatTime(r.time)}</td>
+            <td>${r.timestamp}</td>
+        </tr>`).join('');
+
+    rankingList.innerHTML = `
+        <table class="ranking-table">
+            <thead><tr><th>Platz</th><th>Punkte</th><th>Zeit</th><th>Datum</th></tr></thead>
+            <tbody>${rows}</tbody>
+        </table>
+        <button id="clear-ranking-btn" class="clear-btn">Bestenliste löschen</button>`;
+
+    document.getElementById('clear-ranking-btn').addEventListener('click', () => {
+        if (confirm(`Bestenliste für ${profile} wirklich löschen?`)) {
+            const remaining = loadResults().filter(r => r.profile !== profile);
+            persistResults(remaining);
+            displayRanking(profile);
+        }
     });
-    
-    html += '</tbody></table>';
-    rankingList.innerHTML = html;
 }
 
-// Show specific page
-function showPage(pageName) {
-    settingsPage.classList.remove('active');
-    quizPage.classList.remove('active');
-    correctPage.classList.remove('active');
-    resultsPage.classList.remove('active');
-    
-    if (pageName === 'settings') {
-        settingsPage.classList.add('active');
-    } else if (pageName === 'quiz') {
-        quizPage.classList.add('active');
-    } else if (pageName === 'correct') {
-        correctPage.classList.add('active');
-    } else if (pageName === 'results') {
-        resultsPage.classList.add('active');
+// ============================================================
+// Sound (Web Audio API — no asset files needed)
+// ============================================================
+let audioCtx = null;
+function unlockAudio() {
+    if (!audioCtx && (window.AudioContext || window.webkitAudioContext)) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
 }
 
-// Reset game
+function tone(freq, startOffset, duration, type = 'sine') {
+    if (!soundEnabled || !audioCtx) return;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    const t = audioCtx.currentTime + startOffset;
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(0.2, t + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start(t);
+    osc.stop(t + duration);
+}
+
+function playCorrect() { unlockAudio(); tone(660, 0, 0.15); tone(880, 0.12, 0.2); }
+function playWrong()   { unlockAudio(); tone(200, 0, 0.25, 'sawtooth'); }
+function playFinish()  { unlockAudio(); [523, 659, 784, 1047].forEach((f, i) => tone(f, i * 0.13, 0.25)); }
+
+// ============================================================
+// Toggles
+// ============================================================
+visualToggle.addEventListener('change', () => {
+    visualAidsEnabled = visualToggle.checked;
+    if (pages.quiz.classList.contains('active')) {
+        renderVisuals(questions[currentQuestion]);
+    }
+});
+
+soundToggle.addEventListener('change', () => {
+    soundEnabled = soundToggle.checked;
+    if (soundEnabled) unlockAudio();
+});
+
+// ============================================================
+// On-screen number pad (tablet friendly)
+// ============================================================
+function buildNumpad() {
+    const keys = ['1','2','3','4','5','6','7','8','9','⌫','0','OK'];
+    numpad.innerHTML = keys.map(k => {
+        const cls = k === '⌫' ? 'numpad-key numpad-back'
+                  : k === 'OK' ? 'numpad-key numpad-ok'
+                  : 'numpad-key';
+        return `<button type="button" class="${cls}" data-key="${k}">${k}</button>`;
+    }).join('');
+
+    numpad.querySelectorAll('.numpad-key').forEach(btn => {
+        btn.addEventListener('click', () => {
+            unlockAudio();
+            const k = btn.dataset.key;
+            if (k === '⌫') {
+                answerInput.value = answerInput.value.slice(0, -1);
+            } else if (k === 'OK') {
+                if (nextQuestionBtn.style.display === 'block') {
+                    submitAnswer(); // retry after a wrong answer
+                } else {
+                    submitAnswer();
+                }
+            } else {
+                answerInput.value += k;
+            }
+            answerInput.focus();
+        });
+    });
+}
+
+// ============================================================
+// Page navigation & reset
+// ============================================================
+function showPage(pageName) {
+    Object.values(pages).forEach(p => p.classList.remove('active'));
+    if (pages[pageName]) pages[pageName].classList.add('active');
+}
+
 function resetGame() {
     selectedProfile = null;
     selectedOperation = null;
-    selectedRange = 10;
+    selectedRange = CONFIG.defaultRange;
+    selectedQuestionCount = CONFIG.defaultQuestionCount;
     currentQuestion = 0;
     score = 0;
+    currentStreak = 0;
+    bestStreak = 0;
     questions = [];
     startTime = null;
     endTime = null;
-    profileButtons.forEach(btn => btn.classList.remove('selected'));
-    operationButtons.forEach(btn => btn.classList.remove('selected'));
-    rangeButtons.forEach(btn => {
-        btn.classList.remove('selected');
-        if (btn.dataset.range === '10') {
-            btn.classList.add('selected');
-        }
-    });
+
+    profileContainer.querySelectorAll('.profile-btn').forEach(b => b.classList.remove('selected'));
+    operationContainer.querySelectorAll('.operation-btn').forEach(b => b.classList.remove('selected'));
+    selectDefault(rangeContainer, '.range-btn', 'range', String(CONFIG.defaultRange));
+    selectDefault(countContainer, '.count-btn', 'count', String(CONFIG.defaultQuestionCount));
     startQuizBtn.disabled = true;
 }
+
+function selectDefault(container, selector, dataKey, defaultValue) {
+    container.querySelectorAll(selector).forEach(b => {
+        b.classList.toggle('selected', b.dataset[dataKey] === defaultValue);
+    });
+}
+
+// ============================================================
+// Init
+// ============================================================
+buildSettings();
+buildNumpad();
+checkStartButton();

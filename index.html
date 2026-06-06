@@ -13,67 +13,28 @@
             <h1>Rechnen Üben</h1>
             <div class="settings-content">
                 <h2>Wer möchte üben?</h2>
-                <div class="profile-buttons">
-                    <button class="profile-btn" data-profile="Alja">
-                        <span class="profile-icon">👧</span>
-                        <span class="profile-name">Alja</span>
-                    </button>
-                    <button class="profile-btn" data-profile="Juri">
-                        <span class="profile-icon">👦</span>
-                        <span class="profile-name">Juri</span>
-                    </button>
-                    <button class="profile-btn" data-profile="Mama">
-                        <span class="profile-icon">👩</span>
-                        <span class="profile-name">Mama</span>
-                    </button>
-                    <button class="profile-btn" data-profile="Papa">
-                        <span class="profile-icon">👨</span>
-                        <span class="profile-name">Papa</span>
-                    </button>
-                    <button class="profile-btn" data-profile="Gast">
-                        <span class="profile-icon">👤</span>
-                        <span class="profile-name">Gast</span>
-                    </button>
-                </div>
+                <div id="profile-buttons" class="profile-buttons"></div>
 
                 <h2>Was möchtest du üben?</h2>
-                <div class="operation-buttons">
-                    <button class="operation-btn" data-operation="addition">
-                        <span class="operation-symbol">+</span>
-                        <span class="operation-name">Plus</span>
-                    </button>
-                    <button class="operation-btn" data-operation="subtraction">
-                        <span class="operation-symbol">−</span>
-                        <span class="operation-name">Minus</span>
-                    </button>
-                    <button class="operation-btn" data-operation="mixed">
-                        <span class="operation-symbol">+ −</span>
-                        <span class="operation-name">Gemischt</span>
-                    </button>
-                </div>
-                <div class="visual-toggle-row">
-                    <label class="visual-toggle-label">
+                <div id="operation-buttons" class="operation-buttons"></div>
+
+                <h2>Welche Zahlen möchtest du üben?</h2>
+                <div id="range-buttons" class="range-buttons"></div>
+
+                <h2>Wie viele Aufgaben?</h2>
+                <div id="count-buttons" class="count-buttons"></div>
+
+                <div class="toggle-row">
+                    <label class="toggle-label">
                         <input type="checkbox" id="visual-toggle" checked>
-                        <span>Hilfssymbole anzeigen</span>
+                        <span>🍎 Hilfssymbole</span>
+                    </label>
+                    <label class="toggle-label">
+                        <input type="checkbox" id="sound-toggle" checked>
+                        <span>🔊 Töne</span>
                     </label>
                 </div>
-                
-                <h2>Welche Zahlen möchtest du üben?</h2>
-                <div class="range-buttons">
-                    <button class="range-btn" data-range="5">
-                        <span class="range-label">0 bis 5</span>
-                        <span class="range-desc">Leicht</span>
-                    </button>
-                    <button class="range-btn selected" data-range="10">
-                        <span class="range-label">0 bis 10</span>
-                        <span class="range-desc">Mittel</span>
-                    </button>
-                    <button class="range-btn" data-range="20">
-                        <span class="range-label">0 bis 20</span>
-                        <span class="range-desc">Schwer</span>
-                    </button>
-                </div>
-                
+
                 <button id="start-quiz-btn" class="start-btn" disabled>Los geht's!</button>
             </div>
         </div>
@@ -81,14 +42,16 @@
         <!-- Quiz Page -->
         <div id="quiz-page" class="page">
             <div class="quiz-header">
+                <button id="back-btn" class="back-btn" title="Zurück">←</button>
                 <div class="progress">
-                    Aufgabe <span id="current-question">1</span> von 10
+                    Aufgabe <span id="current-question">1</span> von <span id="total-questions">10</span>
                 </div>
                 <div class="score-display">
                     Richtig: <span id="current-score">0</span>
+                    <span id="streak-display" class="streak"></span>
                 </div>
             </div>
-            
+
             <div class="question-container">
                 <div class="question-row">
                     <span id="num1" class="number">0</span>
@@ -96,19 +59,17 @@
                     <span id="num2" class="number">0</span>
                     <span class="equals">=</span>
                 </div>
-                <div class="visual-row">
-                    <div id="num1-visual" class="visual-aid"></div>
-                    <span id="visual-operator" class="visual-operator">+</span>
-                    <div id="num2-visual" class="visual-aid"></div>
-                </div>
-                
+                <div class="visual-row"></div>
+
                 <div class="answer-input">
-                    <input type="number" id="answer-input" placeholder="Deine Antwort" autofocus>
+                    <input type="number" id="answer-input" placeholder="Deine Antwort" inputmode="numeric" autofocus>
                 </div>
-                
+
+                <div id="numpad" class="numpad"></div>
+
                 <button id="submit-answer-btn" class="submit-btn">Fertig</button>
                 <button id="next-question-btn" class="next-btn" style="display: none;">Weiter</button>
-                
+
                 <div id="feedback" class="feedback"></div>
             </div>
         </div>
@@ -131,23 +92,25 @@
                 <div class="final-score">
                     <div class="score-circle">
                         <span id="final-score">0</span>
-                        <span class="score-total">von 10</span>
+                        <span class="score-total">von <span id="final-total">10</span></span>
                     </div>
                 </div>
-                
+
+                <div id="badges" class="badges"></div>
+
                 <div class="score-message" id="score-message"></div>
-                
+
                 <div class="results-details">
                     <p>Richtig: <strong id="correct-count">0</strong></p>
                     <p>Falsch: <strong id="incorrect-count">0</strong></p>
                     <p>Zeit: <strong id="time-taken">0:00</strong></p>
                 </div>
-                
+
                 <div class="ranking-section">
                     <h2>🏆 Bestenliste</h2>
                     <div id="ranking-list" class="ranking-list"></div>
                 </div>
-                
+
                 <button id="restart-btn" class="start-btn">Nochmal üben</button>
             </div>
         </div>
