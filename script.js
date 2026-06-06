@@ -258,7 +258,7 @@ function renderAddition(row, q) {
         start: q.num1,
         end: sum,
         mode: 'forward',
-        caption: `Von ${q.num1} aus ${q.num2} weiter → ${sum}`,
+        caption: `Von ${q.num1} aus ${q.num2} weiterzählen`,
     });
 }
 
@@ -269,7 +269,7 @@ function renderNumberLine(row, q) {
         start: q.num1,
         end: answer,
         mode: 'back',
-        caption: `Von ${q.num1} aus ${q.num2} zurück → ${answer}`,
+        caption: `Von ${q.num1} aus ${q.num2} zurückzählen`,
     });
 }
 
@@ -293,8 +293,9 @@ function buildNumberLine(row, opts) {
 
         const tick = document.createElement('div');
         tick.className = 'nl-tick';
+        // Mark the start and the hopped-over steps, but do NOT highlight the
+        // destination — the child should count the hops to find the answer.
         if (i === opts.start) tick.classList.add('nl-start');
-        else if (i === opts.end) tick.classList.add('nl-land');
         else if (stepped) tick.classList.add(opts.mode === 'forward' ? 'nl-added' : 'nl-removed');
 
         const hop = document.createElement('span');
@@ -331,7 +332,7 @@ function renderRepeatedAddition(row, q) {
     if (q.num1 === 0 || q.num2 === 0) {
         const zero = document.createElement('div');
         zero.className = 'nl-caption';
-        zero.textContent = `${q.num1} × ${q.num2} = 0`;
+        zero.textContent = `${q.num1} mal die ${q.num2}`;
         wrap.appendChild(zero);
         row.appendChild(wrap);
         return;
@@ -349,7 +350,7 @@ function renderRepeatedAddition(row, q) {
 
     const caption = document.createElement('div');
     caption.className = 'nl-caption';
-    caption.textContent = `${Array(q.num1).fill(q.num2).join(' + ')} = ${q.num1 * q.num2}`;
+    caption.textContent = Array(q.num1).fill(q.num2).join(' + ');
     wrap.appendChild(caption);
 
     row.appendChild(wrap);
