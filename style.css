@@ -948,3 +948,143 @@ h2 {
         padding: 18px;
     }
 }
+
+/* Landscape on touch devices (e.g. iPad im Querformat): use the width,
+   compress the height, so everything fits on one screen without scrolling. */
+@media (orientation: landscape) and (pointer: coarse) {
+    body {
+        padding: 10px;
+        align-items: flex-start;
+    }
+
+    .container {
+        max-width: 900px;
+    }
+
+    .page {
+        padding: 16px 28px;
+        border-radius: 16px;
+    }
+
+    h1 {
+        font-size: 1.5em;
+        margin-bottom: 8px;
+    }
+
+    h2 {
+        font-size: 1.05em;
+        margin-bottom: 6px;
+    }
+
+    .settings-content {
+        gap: 10px;
+    }
+
+    .profile-buttons {
+        gap: 10px;
+    }
+
+    .profile-btn {
+        padding: 10px 8px;
+        gap: 4px;
+        border-radius: 14px;
+    }
+
+    .profile-icon {
+        font-size: 1.9em;
+    }
+
+    .profile-name {
+        font-size: 0.9em;
+    }
+
+    /* All four operations on one row */
+    .operation-buttons {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+    }
+
+    .operation-btn {
+        padding: 10px 8px;
+        gap: 4px;
+    }
+
+    .operation-symbol {
+        font-size: 1.7em;
+    }
+
+    .operation-name {
+        font-size: 0.9em;
+    }
+
+    .range-buttons,
+    .count-buttons {
+        gap: 10px;
+    }
+
+    .range-btn {
+        padding: 10px;
+    }
+
+    .range-label {
+        font-size: 1.05em;
+    }
+
+    .count-btn {
+        padding: 10px;
+        font-size: 1.2em;
+    }
+
+    .toggle-row {
+        gap: 16px;
+        margin-bottom: 0;
+    }
+
+    .toggle-label {
+        font-size: 0.95em;
+    }
+
+    .start-btn {
+        padding: 12px 30px;
+        font-size: 1.1em;
+        width: auto;
+        max-width: none;
+    }
+
+    /* Keep the quiz page on one screen too */
+    .quiz-header {
+        margin-bottom: 14px;
+        padding-bottom: 10px;
+    }
+
+    .question-container {
+        gap: 12px;
+    }
+
+    .question-row {
+        font-size: 2em;
+        margin-bottom: 0;
+    }
+
+    #answer-input {
+        padding: 10px;
+        font-size: 1.2em;
+    }
+
+    .numpad {
+        max-width: 260px;
+        gap: 8px;
+    }
+
+    .numpad-key {
+        padding: 10px 0;
+        font-size: 1.3em;
+    }
+
+    .submit-btn,
+    .next-btn {
+        padding: 12px 40px;
+        width: auto;
+        max-width: none;
+    }
+}
