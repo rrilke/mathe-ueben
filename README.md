@@ -84,6 +84,10 @@ round uses.
 Scores are stored in the browser's `localStorage` under the key `mathResults`
 (a versioned `{ version, results }` object).
 
+`index.html` loads `style.css` and `script.js` with a `?v=<date>` query. GitHub Pages
+serves them with `Cache-Control: max-age=600`, so **bump that date whenever you change
+either file** — otherwise a tablet that has the page open keeps running the old code.
+
 ## Future Development
 
 Potential features to add:
