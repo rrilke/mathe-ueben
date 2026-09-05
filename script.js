@@ -22,12 +22,14 @@ const CONFIG = {
         { value: 10, label: '0 bis 10', desc: 'Mittel' },
         { value: 20, label: '0 bis 20', desc: 'Schwer' },
     ],
-    // Symbol-Rätsel: how many symbols get a value (1..n). Replaces the ranges
-    // above while that operation is selected.
+    // Symbol-Rätsel: the level says how big the hidden numbers get and how many
+    // of them a task chains together. The number of different symbols per round
+    // stays at symbolsPerRound, so a round never gets overwhelming.
     symbolLevels: [
-        { value: 5,  label: '1 bis 5',  desc: 'Leicht' },
-        { value: 10, label: '1 bis 10', desc: 'Schwer' },
+        { value: 5,  terms: 2, label: '1 bis 5',  desc: 'Leicht · 2 Zahlen' },
+        { value: 10, terms: 4, label: '1 bis 10', desc: 'Schwer · 4 Zahlen' },
     ],
+    symbolsPerRound: 3,
     // Distinct, easy-to-tell-apart symbols for the Symbol-Rätsel legend.
     symbolAlphabet: ['🍎','⭐','🦋','🐻','🌼','🍀','🐞','🍓','🐠','🍩','🦄','🐧','🍉','🍒','🦊'],
     questionCounts: [5, 10, 20],
@@ -83,6 +85,8 @@ const symbolsStartBtn = document.getElementById('symbols-start-btn');
 const restartBtn = document.getElementById('restart-btn');
 const answerInput = document.getElementById('answer-input');
 const numpad = document.getElementById('numpad');
+const symbolBar = document.getElementById('symbol-bar');
+const symbolExpression = document.getElementById('symbol-expression');
 const soundToggle = document.getElementById('sound-toggle');
 const visualToggle = document.getElementById('visual-toggle');
 const speakToggle = document.getElementById('speak-toggle');
@@ -269,48 +273,92 @@ function shuffled(list) {
 // Symbol-Rätsel: each symbol stands for a number 1..count; the questions then
 // only show the symbols, so the child has to substitute before rechnen.
 // ------------------------------------------------------------
-function buildSymbolLegend(count) {
-    const values = shuffled(Array.from({ length: count }, (_, i) => i + 1));
+function buildSymbolLegend(maxValue) {
+    const count = Math.min(CONFIG.symbolsPerRound, maxValue);
+    const values = shuffled(Array.from({ length: maxValue }, (_, i) => i + 1)).slice(0, count);
     return shuffled(CONFIG.symbolAlphabet)
         .slice(0, count)
         .map((icon, i) => ({ icon, value: values[i] }));
 }
 
+function symbolLevel() {
+    return CONFIG.symbolLevels.find(l => l.value === selectedRange) || CONFIG.symbolLevels[0];
+}
+
 function generateSymbolQuestions() {
+    const level = symbolLevel();
     const list = [];
+    let previous = '';
     for (let i = 0; i < selectedQuestionCount; i++) {
-        let a = pickRandom(symbolLegend);
-        let b = pickRandom(symbolLegend);
-        while (symbolLegend.length > 1 && b === a) b = pickRandom(symbolLegend); // two different symbols
-
-        const operation = Math.random() < 0.5 ? 'addition' : 'subtraction';
-        if (operation === 'subtraction' && b.value > a.value) [a, b] = [b, a]; // never negative
-
-        list.push({
-            kind: 'symbols',
-            operation,
-            sym1: a.icon,
-            sym2: b.icon,
-            num1: a.value,
-            num2: b.value,
-            correctAnswer: operation === 'addition' ? a.value + b.value : a.value - b.value,
-            icon: a.icon,
-        });
+        let question;
+        // Only three symbols means few combinations — re-roll a few times so the
+        // same task doesn't turn up twice in a row.
+        for (let tries = 0; tries < 8; tries++) {
+            question = randomSymbolQuestion(level);
+            if (symbolSignature(question) !== previous) break;
+        }
+        previous = symbolSignature(question);
+        list.push(question);
     }
     return list;
+}
+
+function symbolSignature(q) {
+    return q.terms.map((t, i) => (i ? q.ops[i - 1] : '') + t.icon).join('');
+}
+
+// A chain like 🍎 + ⭐ − 🦊 + 🐻, built left to right so the running total never
+// goes negative and never grows past what the level allows.
+function randomSymbolQuestion(level) {
+    const maxTotal = level.value * 2;
+    const first = pickRandom(symbolLegend);
+    const terms = [first];
+    const ops = [];
+    let total = first.value;
+
+    for (let i = 1; i < level.terms; i++) {
+        const previous = terms[terms.length - 1];
+        const choices = [];
+        symbolLegend.forEach(sym => {
+            if (sym === previous && symbolLegend.length > 1) return; // not the same symbol twice in a row
+            if (total + sym.value <= maxTotal) choices.push({ op: 'addition', sym });
+            if (sym.value <= total) choices.push({ op: 'subtraction', sym });
+        });
+
+        // There is always a way forward, but stay safe: adding the smallest symbol
+        // is the fallback if the guards ever rule everything out.
+        const pick = choices.length
+            ? pickRandom(choices)
+            : { op: 'addition', sym: symbolLegend.reduce((a, b) => (a.value <= b.value ? a : b)) };
+
+        terms.push(pick.sym);
+        ops.push(pick.op);
+        total += pick.op === 'addition' ? pick.sym.value : -pick.sym.value;
+    }
+
+    return { kind: 'symbols', terms, ops, correctAnswer: total, icon: first.icon };
 }
 
 function updateQuizDisplay() {
     const question = questions[currentQuestion];
     const isSymbols = question.kind === 'symbols';
 
-    const num1El = document.getElementById('num1');
-    const num2El = document.getElementById('num2');
-    num1El.textContent = isSymbols ? question.sym1 : question.num1;
-    num2El.textContent = isSymbols ? question.sym2 : question.num2;
-    num1El.classList.toggle('symbol-token', isSymbols);
-    num2El.classList.toggle('symbol-token', isSymbols);
-    document.getElementById('operator').textContent = OPERATOR_SYMBOLS[question.operation];
+    // A symbol task is a chain of its own; the plain num1 ○ num2 row steps aside.
+    ['num1', 'operator', 'num2'].forEach(id => {
+        document.getElementById(id).style.display = isSymbols ? 'none' : '';
+    });
+    symbolExpression.style.display = isSymbols ? '' : 'none';
+
+    if (isSymbols) {
+        renderSymbolExpression(question);
+    } else {
+        document.getElementById('num1').textContent = question.num1;
+        document.getElementById('num2').textContent = question.num2;
+        document.getElementById('operator').textContent = OPERATOR_SYMBOLS[question.operation];
+    }
+
+    // The legend stays above every question — remembering it is not the exercise.
+    renderSymbolBar(isSymbols);
 
     // Reading "🍎 plus ⭐" aloud would either be nonsense or give the values away.
     speakBtn.style.display = isSymbols ? 'none' : '';
@@ -353,11 +401,9 @@ function updateStreakDisplay() {
 function renderVisuals(question) {
     const visualRow = document.querySelector('.visual-row');
 
-    // Symbol-Rätsel: the helper is the legend itself — with Hilfssymbole off
-    // the child has to remember what each symbol is worth.
+    // Symbol-Rätsel: the legend above the question is the helper already.
     if (question.kind === 'symbols') {
-        visualRow.style.display = visualAidsEnabled ? '' : 'none';
-        if (visualAidsEnabled) renderLegendStrip(visualRow);
+        visualRow.style.display = 'none';
         return;
     }
 
@@ -496,17 +542,24 @@ function renderLegendPage() {
         </div>`).join('');
 }
 
-// The same mapping as a compact strip under the question (the "Spickzettel").
-function renderLegendStrip(row) {
-    row.className = 'visual-row legend-row';
-    row.innerHTML = `
-        <div class="legend-strip">
-            ${legendByValue().map(s => `
-                <span class="legend-chip">
-                    <span class="legend-chip-icon">${s.icon}</span>
-                    <span class="legend-chip-value">${s.value}</span>
-                </span>`).join('')}
-        </div>`;
+// The task itself: 🍎 + ⭐ − 🦊 + 🐻
+function renderSymbolExpression(q) {
+    symbolExpression.innerHTML = q.terms.map((term, i) => {
+        const op = i === 0 ? '' : `<span class="expr-op">${OPERATOR_SYMBOLS[q.ops[i - 1]]}</span>`;
+        return `${op}<span class="symbol-token">${term.icon}</span>`;
+    }).join('');
+}
+
+// The same mapping as a compact strip above the question (the "Spickzettel").
+function renderSymbolBar(isSymbols) {
+    symbolBar.style.display = isSymbols ? '' : 'none';
+    if (!isSymbols) return;
+
+    symbolBar.innerHTML = legendByValue().map(s => `
+        <span class="legend-chip">
+            <span class="legend-chip-icon">${s.icon}</span>
+            <span class="legend-chip-value">${s.value}</span>
+        </span>`).join('');
 }
 
 // Sorted 1, 2, 3 … — easier to memorise than a random order.

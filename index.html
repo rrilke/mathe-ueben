@@ -50,8 +50,8 @@
                 <div class="progress">Symbol-Rätsel</div>
                 <div class="score-display"></div>
             </div>
-            <h1>Merk dir die Symbole!</h1>
-            <p class="symbols-intro">Jedes Symbol ist eine Zahl. Danach rechnest du damit.</p>
+            <h1>Das sind deine Symbole!</h1>
+            <p class="symbols-intro">Jedes Symbol ist eine Zahl. Sie steht bei jeder Aufgabe oben.</p>
             <div id="symbol-legend" class="symbol-legend"></div>
             <button id="symbols-start-btn" class="start-btn">Los geht's!</button>
         </div>
@@ -70,10 +70,12 @@
             </div>
 
             <div class="question-container">
+                <div id="symbol-bar" class="symbol-bar"></div>
                 <div class="question-row">
                     <span id="num1" class="number">0</span>
                     <span id="operator" class="operator">+</span>
                     <span id="num2" class="number">0</span>
+                    <span id="symbol-expression" class="symbol-expression"></span>
                     <span class="equals">=</span>
                     <button id="speak-btn" class="speak-btn" type="button" title="Aufgabe vorlesen">🔊</button>
                 </div>

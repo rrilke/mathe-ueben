@@ -15,17 +15,17 @@ This interactive web application helps children practice:
 - **Profiles** – pick who's practising (Alja, Juri, Mama, Papa, Gast); scores are tracked per profile
 - **Five operations** – plus, minus, mixed, multiplication, and the Symbol-Rätsel
 - **Difficulty ranges** – 0–5 (easy), 0–10 (medium), 0–20 (hard); multiplication stays within the times tables
-- **Symbol-Rätsel** – a memory-and-maths layer: first a board shows what each symbol
-  is worth (1–5 easy, 1–10 hard, reshuffled every round), then the questions show only
-  symbols (`🍎 + ⭐ = ?`) and the child substitutes before calculating. Only plus and
-  minus, never a negative result. The legend stays visible as a small strip under the
-  question while **Hilfssymbole** is on — switch it off and the round becomes a memory game
+- **Symbol-Rätsel** – three symbols stand for numbers: a board shows what each one is
+  worth, then the questions show only symbols and the child substitutes before
+  calculating. Two levels: *Leicht* chains 2 numbers from 1–5 (`🐻 − 🍩 = ?`), *Schwer*
+  chains 4 from 1–10 (`🍉 + 🐞 − 🐠 + 🍉 = ?`). Only plus and minus, and the running
+  total never goes negative along the way. The three symbols stay above every question,
+  so it is a substitution exercise and not a memory test
 - **Adjustable quiz length** – 5, 10, or 20 questions
 - **Visual helper symbols** (Hilfssymbole) that model the operation, not just the numbers:
   - **Plus** – a number line that hops *forward* from the first number to the sum
   - **Minus** – a number line that hops *back* (count-back model) to the answer
   - **Malnehmen** – repeated addition (e.g. `4 + 4 + 4 = 12`) with grouped icons
-  - **Symbol-Rätsel** – the legend strip (symbol = number) as a Spickzettel
   - Helpers hide automatically when there would be too many icons to count
 - **Sound effects** – happy chime for correct, buzz for wrong, fanfare at the finish (toggleable)
 - **Streak counter** and end-of-quiz **badges** (Perfekt 🌟, Serie 🔥, Blitzschnell ⚡)
@@ -47,7 +47,7 @@ This interactive web application helps children practice:
 
 2. Choose a profile
 3. Choose an operation, number range, and how many questions
-4. Click **Los geht's!** (for the Symbol-Rätsel, memorise the symbol board first)
+4. Click **Los geht's!** (for the Symbol-Rätsel, the symbol board comes first)
 5. Answer the questions and view your results & leaderboard
 
 ## Project Structure
@@ -67,7 +67,7 @@ mathe/
 ## How It Works
 
 1. **Settings page** – pick profile, operation, range, and question count
-2. **Symbol board** (Symbol-Rätsel only) – learn which number each symbol stands for
+2. **Symbol board** (Symbol-Rätsel only) – see which number each symbol stands for
 3. **Quiz page** – answer the questions, helped by the visual number line / groups
 4. **Results page** – final score, badges, time, and the per-profile leaderboard
 
@@ -76,8 +76,10 @@ mathe/
 Most behaviour is data-driven from the `CONFIG` object at the top of `script.js`:
 adding a child is one line in `CONFIG.profiles`, and operations, ranges, and
 question-count choices are defined there too — the buttons build themselves.
-The Symbol-Rätsel has its own two levels (`CONFIG.symbolLevels`) and its own pool
-of symbols (`CONFIG.symbolAlphabet`).
+The Symbol-Rätsel has its own two levels (`CONFIG.symbolLevels` — each with the
+largest value and how many numbers a task chains), its own pool of symbols
+(`CONFIG.symbolAlphabet`), and `CONFIG.symbolsPerRound` for how many symbols a
+round uses.
 
 Scores are stored in the browser's `localStorage` under the key `mathResults`
 (a versioned `{ version, results }` object).

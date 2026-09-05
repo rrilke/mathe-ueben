@@ -965,9 +965,10 @@ h2 {
 
 .symbol-legend {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: 15px;
-    margin-bottom: 30px;
+    max-width: 520px;
+    margin: 0 auto 30px auto;
 }
 
 .legend-card {
@@ -1003,26 +1004,21 @@ h2 {
     margin: 0 auto;
 }
 
-/* --- Legend strip on the quiz page (the "Spickzettel") --- */
-.legend-row {
-    width: 100%;
-    flex-direction: column;
-}
-
-.legend-strip {
+/* --- Legend strip above the question (the "Spickzettel") --- */
+.symbol-bar {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     justify-content: center;
-    gap: 10px;
+    gap: 12px;
     width: 100%;
 }
 
 .legend-chip {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    padding: 6px 10px;
+    gap: 6px;
+    padding: 8px 14px;
     background: #f3f4ff;
     border: 2px solid #c7cdf5;
     border-radius: 12px;
@@ -1030,19 +1026,62 @@ h2 {
 }
 
 .legend-chip-icon {
-    font-size: 1.4em;
+    font-size: 1.6em;
 }
 
 .legend-chip-value {
-    font-size: 1.2em;
+    font-size: 1.4em;
     font-weight: bold;
     color: #764ba2;
 }
 
-/* --- The symbols inside the question itself --- */
+/* --- The task itself: 🍎 + ⭐ − 🦊 + 🐻 --- */
+.symbol-expression {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 14px;
+}
+
+.expr-op {
+    color: #667eea;
+}
+
 .symbol-token {
     font-size: 1.15em;
     line-height: 1;
+}
+
+/* Four symbols plus operators need the room on a phone */
+@media (max-width: 600px) {
+    .question-row {
+        font-size: 1.9em;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .symbol-expression {
+        gap: 6px;
+        font-size: 0.85em;
+    }
+
+    .symbol-bar {
+        gap: 8px;
+    }
+
+    .legend-chip {
+        padding: 5px 9px;
+        gap: 4px;
+    }
+
+    .legend-chip-icon {
+        font-size: 1.4em;
+    }
+
+    .legend-chip-value {
+        font-size: 1.2em;
+    }
 }
 
 /* Landscape on touch devices (e.g. iPad im Querformat): use the width,
@@ -1192,7 +1231,6 @@ h2 {
     }
 
     .symbol-legend {
-        grid-template-columns: repeat(5, 1fr);
         gap: 10px;
         margin-bottom: 16px;
     }
@@ -1208,6 +1246,14 @@ h2 {
     }
 
     .legend-chip {
-        padding: 4px 8px;
+        padding: 5px 10px;
+    }
+
+    .symbol-bar {
+        gap: 10px;
+    }
+
+    .symbol-expression {
+        gap: 10px;
     }
 }
