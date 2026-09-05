@@ -15,12 +15,21 @@ const CONFIG = {
         { id: 'subtraction',    symbol: '−',   name: 'Minus' },
         { id: 'mixed',          symbol: '+ −', name: 'Gemischt' },
         { id: 'multiplication', symbol: '×',   name: 'Malnehmen' },
+        { id: 'symbols',        symbol: '🍎?', name: 'Symbol-Rätsel' },
     ],
     ranges: [
         { value: 5,  label: '0 bis 5',  desc: 'Leicht' },
         { value: 10, label: '0 bis 10', desc: 'Mittel' },
         { value: 20, label: '0 bis 20', desc: 'Schwer' },
     ],
+    // Symbol-Rätsel: how many symbols get a value (1..n). Replaces the ranges
+    // above while that operation is selected.
+    symbolLevels: [
+        { value: 5,  label: '1 bis 5',  desc: 'Leicht' },
+        { value: 10, label: '1 bis 10', desc: 'Schwer' },
+    ],
+    // Distinct, easy-to-tell-apart symbols for the Symbol-Rätsel legend.
+    symbolAlphabet: ['🍎','⭐','🦋','🐻','🌼','🍀','🐞','🍓','🐠','🍩','🦄','🐧','🍉','🍒','🦊'],
     questionCounts: [5, 10, 20],
     icons: ['🍎','⭐','🧡','🦋','🐻','🌼','🍀','🐞','🍓','🌟','🐠','🍩','🍪','🦄','🐧','🍉','🍌','🍒','🦊','🐸'],
 
@@ -49,12 +58,14 @@ let startTime = null;
 let endTime = null;
 let currentStreak = 0;
 let bestStreak = 0;
+let symbolLegend = [];   // Symbol-Rätsel: [{ icon, value }] for this round
 
 // ============================================================
 // DOM elements
 // ============================================================
 const pages = {
     settings: document.getElementById('settings-page'),
+    symbols: document.getElementById('symbols-page'),
     quiz: document.getElementById('quiz-page'),
     correct: document.getElementById('correct-page'),
     results: document.getElementById('results-page'),
@@ -67,6 +78,8 @@ const startQuizBtn = document.getElementById('start-quiz-btn');
 const submitAnswerBtn = document.getElementById('submit-answer-btn');
 const nextQuestionBtn = document.getElementById('next-question-btn');
 const backBtn = document.getElementById('back-btn');
+const symbolsBackBtn = document.getElementById('symbols-back-btn');
+const symbolsStartBtn = document.getElementById('symbols-start-btn');
 const restartBtn = document.getElementById('restart-btn');
 const answerInput = document.getElementById('answer-input');
 const numpad = document.getElementById('numpad');
@@ -95,11 +108,7 @@ function buildSettings() {
             <span class="operation-name">${o.name}</span>
         </button>`).join('');
 
-    rangeContainer.innerHTML = CONFIG.ranges.map(r => `
-        <button class="range-btn${r.value === CONFIG.defaultRange ? ' selected' : ''}" data-range="${r.value}">
-            <span class="range-label">${r.label}</span>
-            <span class="range-desc">${r.desc}</span>
-        </button>`).join('');
+    renderRanges();
 
     countContainer.innerHTML = CONFIG.questionCounts.map(c => `
         <button class="count-btn${c === CONFIG.defaultQuestionCount ? ' selected' : ''}" data-count="${c}">
@@ -108,9 +117,35 @@ function buildSettings() {
 
     // Single-select handlers for each group
     wireSingleSelect(profileContainer, '.profile-btn', btn => { selectedProfile = btn.dataset.profile; });
-    wireSingleSelect(operationContainer, '.operation-btn', btn => { selectedOperation = btn.dataset.operation; });
-    wireSingleSelect(rangeContainer, '.range-btn', btn => { selectedRange = parseInt(btn.dataset.range, 10); });
+    wireSingleSelect(operationContainer, '.operation-btn', btn => {
+        selectedOperation = btn.dataset.operation;
+        renderRanges(); // Symbol-Rätsel offers its own two levels
+    });
     wireSingleSelect(countContainer, '.count-btn', btn => { selectedQuestionCount = parseInt(btn.dataset.count, 10); });
+}
+
+// The Symbol-Rätsel has only two levels (1–5 / 1–10), the other operations
+// the usual three ranges — so the buttons are rebuilt whenever the operation changes.
+function rangeOptions() {
+    return selectedOperation === 'symbols' ? CONFIG.symbolLevels : CONFIG.ranges;
+}
+
+function renderRanges() {
+    const options = rangeOptions();
+    if (!options.some(o => o.value === selectedRange)) {
+        selectedRange = options.some(o => o.value === CONFIG.defaultRange)
+            ? CONFIG.defaultRange
+            : options[options.length - 1].value;
+    }
+
+    rangeContainer.style.gridTemplateColumns = `repeat(${options.length}, 1fr)`;
+    rangeContainer.innerHTML = options.map(r => `
+        <button class="range-btn${r.value === selectedRange ? ' selected' : ''}" data-range="${r.value}">
+            <span class="range-label">${r.label}</span>
+            <span class="range-desc">${r.desc}</span>
+        </button>`).join('');
+
+    wireSingleSelect(rangeContainer, '.range-btn', btn => { selectedRange = parseInt(btn.dataset.range, 10); });
 }
 
 function wireSingleSelect(container, selector, onSelect) {
@@ -137,9 +172,28 @@ startQuizBtn.addEventListener('click', () => {
     if (selectedProfile && selectedOperation && selectedRange && selectedQuestionCount) {
         unlockSpeech(); // prime read-aloud inside the user gesture (iOS)
         initializeQuiz();
-        showPage('quiz');
+        if (selectedOperation === 'symbols') {
+            renderLegendPage();     // learn the symbols first, then rechnen
+            showPage('symbols');
+        } else {
+            startQuestions();
+        }
     }
 });
+
+symbolsStartBtn.addEventListener('click', startQuestions);
+
+symbolsBackBtn.addEventListener('click', () => {
+    showPage('settings');
+});
+
+// Enter the question flow — the clock starts here, so memorising the symbol
+// legend doesn't count against the time.
+function startQuestions() {
+    startTime = Date.now();
+    showPage('quiz');
+    updateQuizDisplay();
+}
 
 backBtn.addEventListener('click', () => {
     cancelSpeech();
@@ -156,12 +210,14 @@ function initializeQuiz() {
     score = 0;
     currentStreak = 0;
     bestStreak = 0;
+    symbolLegend = selectedOperation === 'symbols' ? buildSymbolLegend(selectedRange) : [];
     questions = generateQuestions();
     startTime = Date.now();
-    updateQuizDisplay();
 }
 
 function generateQuestions() {
+    if (selectedOperation === 'symbols') return generateSymbolQuestions();
+
     const list = [];
     for (let i = 0; i < selectedQuestionCount; i++) {
         const icon = CONFIG.icons[Math.floor(Math.random() * CONFIG.icons.length)];
@@ -196,12 +252,68 @@ function randInt(max) {
     return Math.floor(Math.random() * (max + 1));
 }
 
+function pickRandom(list) {
+    return list[Math.floor(Math.random() * list.length)];
+}
+
+function shuffled(list) {
+    const copy = list.slice();
+    for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    return copy;
+}
+
+// ------------------------------------------------------------
+// Symbol-Rätsel: each symbol stands for a number 1..count; the questions then
+// only show the symbols, so the child has to substitute before rechnen.
+// ------------------------------------------------------------
+function buildSymbolLegend(count) {
+    const values = shuffled(Array.from({ length: count }, (_, i) => i + 1));
+    return shuffled(CONFIG.symbolAlphabet)
+        .slice(0, count)
+        .map((icon, i) => ({ icon, value: values[i] }));
+}
+
+function generateSymbolQuestions() {
+    const list = [];
+    for (let i = 0; i < selectedQuestionCount; i++) {
+        let a = pickRandom(symbolLegend);
+        let b = pickRandom(symbolLegend);
+        while (symbolLegend.length > 1 && b === a) b = pickRandom(symbolLegend); // two different symbols
+
+        const operation = Math.random() < 0.5 ? 'addition' : 'subtraction';
+        if (operation === 'subtraction' && b.value > a.value) [a, b] = [b, a]; // never negative
+
+        list.push({
+            kind: 'symbols',
+            operation,
+            sym1: a.icon,
+            sym2: b.icon,
+            num1: a.value,
+            num2: b.value,
+            correctAnswer: operation === 'addition' ? a.value + b.value : a.value - b.value,
+            icon: a.icon,
+        });
+    }
+    return list;
+}
+
 function updateQuizDisplay() {
     const question = questions[currentQuestion];
+    const isSymbols = question.kind === 'symbols';
 
-    document.getElementById('num1').textContent = question.num1;
-    document.getElementById('num2').textContent = question.num2;
+    const num1El = document.getElementById('num1');
+    const num2El = document.getElementById('num2');
+    num1El.textContent = isSymbols ? question.sym1 : question.num1;
+    num2El.textContent = isSymbols ? question.sym2 : question.num2;
+    num1El.classList.toggle('symbol-token', isSymbols);
+    num2El.classList.toggle('symbol-token', isSymbols);
     document.getElementById('operator').textContent = OPERATOR_SYMBOLS[question.operation];
+
+    // Reading "🍎 plus ⭐" aloud would either be nonsense or give the values away.
+    speakBtn.style.display = isSymbols ? 'none' : '';
 
     document.getElementById('current-question').textContent = currentQuestion + 1;
     document.getElementById('total-questions').textContent = selectedQuestionCount;
@@ -220,7 +332,8 @@ function updateQuizDisplay() {
     answerInput.disabled = false;
     answerInput.focus();
 
-    scheduleSpeak(question); // read the task aloud after a short delay
+    if (isSymbols) cancelSpeech();
+    else scheduleSpeak(question); // read the task aloud after a short delay
 }
 
 function updateStreakDisplay() {
@@ -239,6 +352,14 @@ function updateStreakDisplay() {
 // ------------------------------------------------------------
 function renderVisuals(question) {
     const visualRow = document.querySelector('.visual-row');
+
+    // Symbol-Rätsel: the helper is the legend itself — with Hilfssymbole off
+    // the child has to remember what each symbol is worth.
+    if (question.kind === 'symbols') {
+        visualRow.style.display = visualAidsEnabled ? '' : 'none';
+        if (visualAidsEnabled) renderLegendStrip(visualRow);
+        return;
+    }
 
     const totalIcons = question.operation === 'multiplication'
         ? question.num1 * question.num2
@@ -363,6 +484,34 @@ function renderRepeatedAddition(row, q) {
     wrap.appendChild(caption);
 
     row.appendChild(wrap);
+}
+
+// Symbol-Rätsel: the big "learn it first" board shown before the questions.
+function renderLegendPage() {
+    document.getElementById('symbol-legend').innerHTML = legendByValue().map(s => `
+        <div class="legend-card">
+            <span class="legend-icon">${s.icon}</span>
+            <span class="legend-equals">=</span>
+            <span class="legend-value">${s.value}</span>
+        </div>`).join('');
+}
+
+// The same mapping as a compact strip under the question (the "Spickzettel").
+function renderLegendStrip(row) {
+    row.className = 'visual-row legend-row';
+    row.innerHTML = `
+        <div class="legend-strip">
+            ${legendByValue().map(s => `
+                <span class="legend-chip">
+                    <span class="legend-chip-icon">${s.icon}</span>
+                    <span class="legend-chip-value">${s.value}</span>
+                </span>`).join('')}
+        </div>`;
+}
+
+// Sorted 1, 2, 3 … — easier to memorise than a random order.
+function legendByValue() {
+    return symbolLegend.slice().sort((a, b) => a.value - b.value);
 }
 
 function groupEl(value, iconChar) {
@@ -726,12 +875,13 @@ function resetGame() {
     currentStreak = 0;
     bestStreak = 0;
     questions = [];
+    symbolLegend = [];
     startTime = null;
     endTime = null;
 
     profileContainer.querySelectorAll('.profile-btn').forEach(b => b.classList.remove('selected'));
     operationContainer.querySelectorAll('.operation-btn').forEach(b => b.classList.remove('selected'));
-    selectDefault(rangeContainer, '.range-btn', 'range', String(CONFIG.defaultRange));
+    renderRanges(); // back to the standard three ranges
     selectDefault(countContainer, '.count-btn', 'count', String(CONFIG.defaultQuestionCount));
     startQuizBtn.disabled = true;
 }
